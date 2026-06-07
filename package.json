@@ -5,9 +5,10 @@
   "type": "module",
   "main": "electron/main.cjs",
   "scripts": {
-    "dev": "npm run start",
-    "start": "npm run electron:dev",
-    "dev:start": "npm run start",
+    "start": "node scripts/start.mjs",
+    "dev": "node scripts/start.mjs",
+    "start:desktop": "npm run electron:dev",
+    "serve": "node apps/api/src/server.mjs",
     "api:dev": "node apps/api/src/server.mjs",
     "test:unit": "node tests/unit.mjs",
     "test:integration": "node tests/integration.mjs",

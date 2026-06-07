@@ -21,8 +21,13 @@ canten *línia* o *bingo*. L'app gestiona tot el flux: muntar la llista, generar
 imprimir-los en PDF amb un QR únic per cartó, sortejar en directe i validar els cartons
 guanyadors escanejant el QR amb el mòbil.
 
-Funciona com a **app d'escriptori (Electron)** amb un **servidor embegut** (HTTP +
-SQLite) que també serveix la interfície per al mòbil dins la mateixa Wi-Fi.
+Funciona de dues maneres sobre el **mateix servidor** (HTTP + SQLite):
+
+- 🌐 **Mode navegador (multiplataforma)** — `npm start` arrenca el servidor i obre el
+  navegador. Funciona a **macOS, Windows i Linux**. És el mode recomanat.
+- 🖥️ **App d'escriptori (opcional, macOS)** — embolcall Electron amb empaquetat `.dmg`.
+
+En els dos casos el servidor també serveix la interfície per al mòbil dins la mateixa Wi-Fi.
 
 ## Captures
 
@@ -83,27 +88,36 @@ SQLite) que també serveix la interfície per al mòbil dins la mateixa Wi-Fi.
 
 ## Requisits
 
-- **macOS** (empaquetat `.dmg`; el servidor és multiplataforma).
-- **Node.js 20** recomanat (l'app corre sobre el Node que porta Electron 31).
-- `npm`.
+- **Node.js 18+** (recomanat 20 o 22) i `npm`. Cap altre requisit per al mode navegador.
+- macOS, Windows o Linux.
 
-> ℹ️ El mòdul natiu `better-sqlite3` es compila per al Node d'Electron. Si executes el
-> servidor amb un Node de sistema diferent (p. ex. v22+) i veus un error d'ABI
-> (`NODE_MODULE_VERSION`), fes `npm rebuild better-sqlite3` per a aquell Node. El flux
-> normal amb Electron **no** ho necessita.
+> ℹ️ `npm install` compila el mòdul natiu `better-sqlite3` per al teu Node (descarrega
+> *prebuilds* per a les versions habituals). Si canvies de versió de Node i veus un error
+> d'ABI (`NODE_MODULE_VERSION`), fes `npm rebuild better-sqlite3`.
 
 ## Instal·lació i execució
+
+### Mode navegador (macOS · Windows · Linux) — recomanat
 
 ```bash
 git clone https://github.com/ipaud/QUINAPP.git
 cd QUINAPP
 npm install
-npm run start          # obre l'app d'escriptori (Electron)
+npm start              # arrenca el servidor i obre el navegador
 ```
 
-- L'app arrenca el servidor embegut a `0.0.0.0:3000`.
-- La finestra carrega `http://127.0.0.1:3000`.
-- Per a Spotify, passa el Client ID: `SPOTIFY_CLIENT_ID=EL_TEU_ID npm run start`.
+- Servidor a `0.0.0.0:3000`; s'obre `http://127.0.0.1:3000` al navegador per defecte.
+- Per a Spotify, passa el Client ID abans d'arrencar:
+  - macOS/Linux: `SPOTIFY_CLIENT_ID=EL_TEU_ID npm start`
+  - Windows (PowerShell): `$env:SPOTIFY_CLIENT_ID="EL_TEU_ID"; npm start`
+- No vols que obri el navegador sol? `QUINAPP_NO_OPEN=1 npm start`.
+
+### App d'escriptori (opcional, macOS)
+
+```bash
+npm run start:desktop          # finestra Electron
+npm run electron:pack:mac      # genera dist/QUINAPP-<versió>-arm64.dmg
+```
 
 ## Variables d'entorn
 
