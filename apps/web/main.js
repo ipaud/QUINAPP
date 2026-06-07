@@ -2088,7 +2088,14 @@ document.addEventListener('keydown', (event) => {
         method: 'POST', body: { url, provider: 'auto', token },
       }));
       if (!parsed.songs?.length) throw new Error('Llista buida o no llegible');
-      wstate.songs = parsed.songs.map((s) => ({ artist: s.artist || '', title: s.title || '' }));
+      // Conserva uri/url/provider per mantenir l'enllaç de Spotify (reproducció).
+      wstate.songs = parsed.songs.map((s) => ({
+        artist: s.artist || '',
+        title: s.title || '',
+        url: s.url || null,
+        uri: s.uri || null,
+        provider: s.provider || null,
+      }));
       if (W.importStatus) W.importStatus.textContent = `${parsed.songs.length} cançons importades.`;
       if (W.next2) W.next2.disabled = false;
       saveWiz();
@@ -2151,6 +2158,10 @@ document.addEventListener('keydown', (event) => {
     const pin = genPin();
     const songsText = songs.map((s) => `${s.artist} - ${s.title}`).join('\n');
     await api('/api/sessions', { method: 'POST', body: { pin, songsText, rows: 3, cols: 5, preventDupes: true } });
+    // Re-importa amb els objectes complets perquè es guardin uri/url de Spotify.
+    if (songs.some((s) => s.uri || s.url)) {
+      await api(`/api/sessions/${encodeURIComponent(pin)}/import-songs`, { method: 'POST', body: { songs } });
+    }
     const count = Math.max(1, Math.min(200, Number(W.count?.value || 20)));
     await api(`/api/sessions/${encodeURIComponent(pin)}/cards`, { method: 'POST', body: { count } });
     wstate.pin = pin;
