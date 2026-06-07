@@ -2074,8 +2074,8 @@ document.addEventListener('keydown', (event) => {
     if (W.modeToggle) W.modeToggle.textContent = advanced ? 'Assistent' : 'Mode avançat';
   }
   W.modeToggle?.addEventListener('click', () => setMode(!document.body.classList.contains('advanced')));
-  setMode(lsGet(MODE_KEY) === 'advanced'
-    || new URLSearchParams(location.search).get('mode') === 'advanced');
+  // La vista per defecte és SEMPRE l'assistent; només el deep-link ?mode=advanced l'obre.
+  setMode(new URLSearchParams(location.search).get('mode') === 'advanced');
 
   function showStep(n) {
     curStep = n;
@@ -2302,6 +2302,10 @@ document.addEventListener('keydown', (event) => {
       W.nowTitle.textContent = song.title;
     }
     if (W.counter) W.counter.textContent = `${drawn ?? 0} / ${total}`;
+    if (W.drawNext) {
+      W.drawNext.disabled = Boolean(state.playlistDone);
+      if (state.playlistDone) W.drawNext.textContent = '✓ Totes sonades';
+    }
     if (W.spotifyHint) {
       const noLink = song && !getSpotifyTrackId(song);
       W.spotifyHint.textContent = noLink ? 'Aquesta cançó no té enllaç a Spotify (no es reprodueix sola).' : '';

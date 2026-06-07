@@ -331,6 +331,13 @@ textarea {
 
 .btn:hover   { filter: brightness(0.96); }
 .btn:active  { transform: translate(3px, 3px); box-shadow: none; }
+.btn:disabled, .btn[disabled] {
+  opacity: 0.4;
+  cursor: not-allowed;
+  filter: none;
+  transform: none;
+  box-shadow: var(--shadow-sm);
+}
 
 .btn-primary { background: #1db954; color: #fff; }
 .btn-accent  { background: var(--accent); color: var(--ink); }
