@@ -1,0 +1,18 @@
+node_modules
+.DS_Store
+*.log
+
+# Build artifacts (packaged app, ~370 MB)
+dist/
+
+# Runtime pid/log files
+.quinapp-*.pid
+.quinapp-dev.log
+
+# Local SQLite database + per-install QR secret
+data/*.db
+data/*.db-*
+data/qr-secret.key
+
+# Env
+.env

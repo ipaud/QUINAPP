@@ -1,0 +1,1451 @@
+<?php
+// quina.php — Quinapp v1.4 (clar + Spotify PKCE Premium playback + Locutor playlist completa random + persistència)
+// Rep opcionalment PIN via query (?pin=1234) i el preomple
+$pin_from_query = isset($_GET['pin']) ? htmlspecialchars($_GET['pin'], ENT_QUOTES, 'UTF-8') : '';
+?>
+<!DOCTYPE html>
+<html lang="ca" data-app="QUINAPP v2.1">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>QUINAPP v2.1</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800;900&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#f6f8fb; --panel:#ffffff; --ink:#0b0d12; --muted:#5b667a;
+  --brand:#8a1538; --accent:#0a4d76; --ring:0 0 0 3px rgba(138,21,56,.15);
+  --border:#e6e8ee; --shadow:0 10px 24px rgba(16,24,40,.06);
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;background:
+    radial-gradient(1000px 600px at 20% -15%,rgba(138,21,56,.08),transparent 40%),
+    radial-gradient(800px 600px at 110% 0,rgba(10,77,118,.07),transparent 40%),
+    linear-gradient(180deg,#f9fafc,#f6f8fb 40%);
+  color:var(--ink);
+  font:16px/1.5 "Poppins",system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial
+}
+.controls h2{font-size:13px;color:var(--muted);font-weight:800;text-transform:uppercase;letter-spacing:.06em;margin:18px 0 8px}
+.app{display:grid;grid-template-columns:380px 1fr;gap:18px;max-width:1200px;margin:28px auto;padding:0 16px}
+@media (max-width:980px){.app{grid-template-columns:1fr}}
+.panel{background:var(--panel);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow)}
+.controls{padding:18px 16px 16px}
+header h1{font-size:20px;margin:0 0 4px;font-weight:900;letter-spacing:.3px}
+.sub{color:var(--muted);font-size:13px;margin-bottom:14px}
+label{display:block;font-weight:700;margin:14px 0 8px;font-size:14px}
+.hint{color:var(--muted);font-size:12px;margin:6px 0 10px}
+textarea,input,select{width:100%;padding:12px 13px;border-radius:12px;border:1px solid var(--border);background:#fff;color:var(--ink);outline:none}
+textarea{min-height:120px;resize:vertical}
+textarea:focus,input:focus,select:focus{box-shadow:var(--ring);border-color:#d5d9e3}
+.row{display:flex;gap:10px;align-items:center}.row>*{flex:1}
+.iconbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.iconbtn{display:inline-flex;align-items:center;gap:8px;padding:10px 12px;border-radius:12px;border:1px solid var(--border);background:#fff;color:var(--ink);cursor:pointer;font-weight:700;font-size:14px}
+.iconbtn i{width:18px;height:18px;display:inline-block;line-height:0}
+.iconbtn svg{width:18px;height:18px}
+.iconbtn:focus-visible{outline:none;box-shadow:var(--ring)}
+.iconbtn:hover{transform:translateY(-1px);box-shadow:0 6px 14px rgba(16,24,40,.06)}
+.iconbtn.busy{opacity:.65;pointer-events:none}
+.iconbtn.primary{background:#f8f1f3;border-color:#eed7de;color:var(--brand)}
+.iconbtn.accent{background:#eef5fa;border-color:#d6e6f1;color:var(--accent)}
+.iconbtn.danger{background:#fff1f1;border-color:#ffd8d8;color:#b42318}
+.badge{display:inline-block;padding:2px 8px;border-radius:999px;border:1px solid var(--border);color:var(--muted);font-size:11px}
+
+.board{padding:16px}
+.sheet{background:#fff;border-radius:14px;color:#0c0f14;overflow:hidden;border:2px solid #0c0f14}
+.sheet-inner{padding:16px 16px 8px}
+.sheet-header{display:flex;flex-direction:column;align-items:center;gap:4px;margin-bottom:8px;text-align:center}
+.brand{font-weight:900;letter-spacing:.8px}
+.pin{color:#6a6a6a;font-weight:800;font-size:12px}
+.grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px} /* JS ho sobreescriu segons #cols */
+.cell{border:2px solid #0c0f14;border-radius:12px;padding:10px;min-height:68px;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;user-select:none;transition:.12s transform}
+.cell:hover{transform:translateY(-1px)}
+.cell.mark{background:#0c0f14;color:#fff;box-shadow:inset 0 0 0 2px var(--brand)}
+.cell.free{background:#ffe6ec}
+.artist{font-weight:800}
+.title{font-weight:600;opacity:.9;font-size:12px;margin-top:2px}
+.footer{padding:10px 14px;text-align:center;font-weight:800;border-top:2px solid #0c0f14}
+
+.statusbar{display:flex;justify-content:space-between;align-items:center;padding:12px;border-top:1px dashed #e6e8ee;color:#475467;font-size:14px}
+.kpi{font-weight:900;color:var(--brand)}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:#111827;color:#fff;padding:10px 14px;border-radius:12px;opacity:0;pointer-events:none;transition:opacity .2s, transform .2s;z-index:40}
+.toast.show{opacity:1;transform:translate(-50%, -4px)}
+.modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.35);z-index:50}
+.modal.show{display:flex}
+.modal .box{background:#fff;border:1px solid var(--border);border-radius:16px;padding:18px;max-width:420px;text-align:center}
+.modal h2{margin:.2em 0 .4em;font-size:26px}
+#fx{position:fixed;inset:0;pointer-events:none;z-index:60}
+
+.locutor .current{font-size:20px}
+.locutor ol li{margin:2px 0}
+
+/* Impressió */
+@media print{
+  @page{size:A5 landscape;margin:8mm}
+  body{background:#fff}
+  .app{display:block;margin:0}
+  .controls,.statusbar,.hint,.actions{display:none!important}
+  .board{padding:0}
+  .sheet{border:2px solid #111;border-radius:0;box-shadow:none}
+  .sheet-inner{padding:8px}
+}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
+<!-- Spotify Web Playback SDK (Premium) -->
+<script src="https://sdk.scdn.co/spotify-player.js"></script>
+<!-- Lucide Icons -->
+<script src="https://unpkg.com/lucide@latest"></script>
+<script>
+  // Si el SDK carrega immediatament, que tingui una funció a cridar
+  window.onSpotifyWebPlaybackSDKReady = function(){};
+</script>
+</head>
+<body>
+<canvas id="fx"></canvas>
+
+<div class="app">
+  <!-- Controls -->
+  <div class="panel controls">
+    <header>
+      <h1>QUINAPP v2.1</h1>
+      <div class="sub">Quina Musical App</div>
+    </header>
+
+    <h2>Identificació</h2>
+    <label>PIN de la sessió</label>
+    <div class="row">
+      <input id="pin" placeholder="4821" value="<?php echo $pin_from_query; ?>" aria-label="PIN"/>
+      <button class="iconbtn" id="btnCopyLink" title="Copia enllaç" aria-label="Copia enllaç">
+        <i data-lucide="link-2"></i><span>Copiar enllaç</span>
+      </button>
+    </div>
+
+    <h2>Dades</h2>
+    <label>Llista de cançons (una línia per cançó: Artista — Títol)</label>
+    <textarea id="source" spellcheck="false" aria-label="Llista de cançons"></textarea>
+    <div class="hint">Pots importar un CSV/XLSX o carregar una playlist (YouTube / Spotify / Apple).</div>
+
+    <h2>Cartró</h2>
+    <label>Accions</label>
+    <div class="iconbar" style="margin-top:6px">
+      <button class="iconbtn primary" id="btnGenerate" title="Genera cartró" aria-label="Genera">
+        <i data-lucide="badge-check"></i><span>Generar</span>
+      </button>
+      <button class="iconbtn" id="btnShuffle" title="Barreja" aria-label="Barreja">
+        <i data-lucide="badge-alert"></i><span>Barreja</span>
+      </button>
+      <button class="iconbtn" id="btnRandomSeed" title="Nou codi" aria-label="Nou codi">
+        <i data-lucide="badge-plus"></i><span>Nou codi</span>
+      </button>
+    </div>
+
+    <h2>Spotify</h2>
+    <div class="iconbar">
+      <button class="iconbtn accent" id="btnSpotifyConnect" title="Connecta amb Spotify" aria-label="Connecta amb Spotify">
+        <svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 10 10A10.011 10.011 0 0 0 12 2Zm4.44 14.36a.9.9 0 0 1-1.24.3 11.83 11.83 0 0 0-8.41-.84.9.9 0 1 1-.48-1.74 13.62 13.62 0 0 1 9.68.97.9.9 0 0 1 .45 1.31Zm1.64-3.27a1 1 0 0 1-1.38.33 14.9 14.9 0 0 0-10.6-1.12 1 1 0 1 1-.54-1.93 16.9 16.9 0 0 1 12 1.27 1 1 0 0 1 .52 1.45Zm.23-3.42a1.1 1.1 0 0 1-1.5.36A18.61 18.61 0  0 0 6.2 7.92a1.1 1.1 0 1 1-.6-2.12 20.83 20.83 0 0 1 12.1 2.06 1.1 1.1 0 0 1 .61 1.41Z"/></svg>
+        <span>Connecta amb Spotify</span>
+      </button>
+    </div>
+    <div class="hint">A Spotify Dashboard, afegeix a <b>Redirect URIs</b>: <code>https://zeba.cat/bng2/</code> i/o <code>https://www.zeba.cat/bng2/</code>. Aquest fitxer usa <b>location.origin + location.pathname</b>.</div>
+
+    <h2>Codi únic lot</h2>
+    <div class="row"><input id="seed" placeholder="auto" aria-label="Semilla o llavor"/></div>
+    <label>Columnes</label>
+    <select id="cols" aria-label="Nombre de columnes">
+      <option value="3">3</option>
+      <option value="4">4</option>
+      <option value="5" selected>5</option>
+      <option value="6">6</option>
+    </select>
+    <label>Numero de cartrons</label>
+    <div class="row"><input id="cardsCount" type="number" min="1" max="200" value="2" aria-label="Nombre de cartrons"/></div>
+    <div class="row">
+      <label style="display:flex;gap:8px;align-items:center;font-weight:600"><input type="checkbox" id="preventDupes" checked> Sense repeticions</label>
+    </div>
+
+    <h2>PDF & Impressió</h2>
+    <div class="iconbar">
+      <select id="pdfFormat" style="flex:1" aria-label="Format PDF">
+        <option value="a5">A5 · 1 per pàgina</option>
+        <option value="a4-2up" selected>A4 · 2 per pàgina (vertical)</option>
+      </select>
+      <button class="iconbtn danger" id="btnDownloadPDF" title="Descarrega PDF" aria-label="Descarrega PDF">
+        <i data-lucide="file-down"></i><span>Descarregar PDF</span>
+      </button>
+    </div>
+    <div class="row" style="margin-top:6px">
+      <label style="display:flex;gap:8px;align-items:center;font-weight:600">
+        <input type="checkbox" id="showMeta" checked> Mostrar PIN/Seed/Nº al PDF
+      </label>
+      <label style="display:flex;gap:8px;align-items:center;font-weight:600">
+        <input type="checkbox" id="pdfHC"> Mode alt contrast (PDF)
+      </label>
+    </div>
+
+    <h2>Playlist (opcional)</h2>
+    <div class="row">
+      <input id="playlistUrl" placeholder="Enllaç de playlist (YouTube/Spotify/Apple Music)"/>
+      <button class="iconbtn" id="btnLoadPlaylist" title="Carrega playlist" aria-label="Carrega playlist">
+        <i data-lucide="upload"></i><span>Carregar</span>
+      </button>
+    </div>
+    <div class="row">
+      <select id="playlistProvider" aria-label="Proveïdor de playlist">
+        <option value="auto" selected>Detecta automàticament</option>
+        <option value="youtube">YouTube</option>
+        <option value="spotify">Spotify</option>
+        <option value="apple">Apple Music</option>
+      </select>
+      <input id="providerKey" placeholder="API Key / Token" aria-label="Clau o token"/>
+    </div>
+
+    <div class="iconbar">
+      <button class="iconbtn" id="btnImportCSV" title="Importa CSV" aria-label="Importa CSV">
+        <i data-lucide="file-spreadsheet"></i><span>Importar CSV</span>
+      </button>
+      <input type="file" id="csvFile" accept=".csv,text/csv" style="display:none" />
+      <button class="iconbtn" id="btnImportXLSX" title="Importa XLSX" aria-label="Importa XLSX">
+        <i data-lucide="table-2"></i><span>Importar XLSX</span>
+      </button>
+      <input type="file" id="xlsxFile" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" style="display:none"/>
+      <button class="iconbtn" id="btnQR" title="Obre codi QR amb l’enllaç" aria-label="QR">
+        <i data-lucide="qr-code"></i><span>QR</span>
+      </button>
+      <button class="iconbtn" id="btnLocutor" title="Mode locutor" aria-label="Locutor">
+        <i data-lucide="mic-vocal"></i><span>Locutor</span>
+      </button>
+    </div>
+
+    <div class="statusbar">
+      <div>Estat: <span id="status" class="kpi">esperant…</span></div>
+      <div>Seed: <span id="status-seed" class="kpi">–</span></div>
+    </div>
+  </div>
+
+  <!-- Cartró -->
+  <div class="panel board-wrap">
+    <div class="board">
+      <div class="sheet" id="sheet">
+        <div class="sheet-inner">
+          <div class="sheet-header">
+            <div class="brand">QUINA MUSICAL LA CANYA</div>
+            <div class="pin">PIN: <span id="pinDisplay">—</span></div>
+          </div>
+          <div class="grid" id="grid"></div>
+        </div>
+        <div class="footer">Marca les cançons quan sonin. Primer, Línia; després, Bingo!</div>
+      </div>
+    </div>
+
+    <div class="statusbar">
+      <div>Marques <span id="marks" class="kpi">0</span>/<span id="total" class="kpi">15</span> · Línies <span id="lines" class="kpi">0</span>/<span id="rowsKpi" class="kpi">3</span></div>
+      <div class="iconbar">
+        <button class="iconbtn" id="btnLine" title="Cridar Línia" aria-label="Línia">
+          <i data-lucide="check-line"></i><span>Línia</span>
+        </button>
+        <button class="iconbtn danger" id="btnBingo" title="Cridar Bingo" aria-label="Bingo">
+          <i data-lucide="party-popper"></i><span>Bingo</span>
+        </button>
+        <button class="iconbtn" id="btnClear" title="Neteja marques" aria-label="Neteja">
+          <i data-lucide="eraser"></i><span>Netejar</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- MODE LOCUTOR (playlist completa, random) -->
+    <h2 style="padding:0 16px">Locutor</h2>
+    <div class="locutor" id="locutor" style="display:none;padding:12px 16px">
+      <div style="display:grid;grid-template-columns:1fr 320px;gap:16px">
+        <div>
+          <div class="current" id="locNow" style="font-weight:800;margin-bottom:8px">–</div>
+          <div class="hint">Tecles: <kbd>←</kbd> Anterior · <kbd>Espai</kbd> Play/Stop · <kbd>→</kbd> Següent</div>
+          <div class="iconbar" style="margin-top:8px">
+            <button class="iconbtn" id="locPrev" title="Anterior" aria-label="Anterior">
+              <i data-lucide="skip-back"></i><span>Anterior</span>
+            </button>
+            <button class="iconbtn primary" id="locPlay" title="Anuncia / Play" aria-label="Anuncia">
+              <i data-lucide="play"></i><span>Play</span>
+            </button>
+            <button class="iconbtn danger" id="locStop" title="Atura i marca com sonada" aria-label="Stop">
+              <i data-lucide="square"></i><span>Stop</span>
+            </button>
+            <button class="iconbtn" id="locNext" title="Següent (sense marcar)" aria-label="Següent">
+              <i data-lucide="skip-forward"></i><span>Següent</span>
+            </button>
+            <button class="iconbtn accent" id="locOpen" title="Obrir tema" aria-label="Obrir tema">
+              <i data-lucide="external-link"></i><span>Obrir tema</span>
+            </button>
+            <button class="iconbtn" id="locReshuffle" title="Nova ordre aleatòria" aria-label="Barreja locutor">
+              <i data-lucide="shuffle"></i><span>Barreja locutor</span>
+            </button>
+          </div>
+        </div>
+        <div>
+          <div style="font-weight:800;margin-bottom:8px">Han sonat</div>
+          <ol id="locPlayed" style="margin:0;padding-left:18px;max-height:220px;overflow:auto"></ol>
+          <div class="iconbar" style="margin-top:8px">
+            <button class="iconbtn" id="locUndo" title="Desfer última" aria-label="Desfer">
+              <i data-lucide="undo-2"></i><span>Desfer</span>
+            </button>
+            <button class="iconbtn" id="locClear" title="Buida llista" aria-label="Buida">
+              <i data-lucide="trash"></i><span>Buida</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- /MODE LOCUTOR -->
+  </div>
+</div>
+
+<div class="toast" id="toast">Copiat!</div>
+<div class="modal" id="modal"><div class="box"><h2 id="modalTitle">🎉 Bingo!</h2><p id="modalMsg" class="muted">Has completat el cartró.</p><div style="margin-top:12px"><button class="iconbtn danger" id="modalOk" title="Tanca" aria-label="Tanca"><i data-lucide="x"></i><span>Tancar</span></button></div></div></div>
+
+<script>
+/* ===== Utilitats base ===== */
+const rand=(seed=>()=> (seed=(seed*1664525+1013904223)%4294967296)/4294967296);
+function seededShuffle(a,r){const x=a.slice();for(let i=x.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[x[i],x[j]]=[x[j],x[i]]}return x}
+const $=s=>document.querySelector(s), $$=s=>Array.from(document.querySelectorAll(s));
+const slug=s=>s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
+const toast=m=>{const el=$('#toast');el.textContent=m;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),1400)};
+
+const state={
+  entries:[],      // els 15 del cartró actual
+  seed:'', pin:'', marks:new Set(),
+  freeCenter:false, preventDupes:true, freeText:'',
+  preventDupes:true,
+  rows:3, cols:5,
+  // --- Playlist / Locutor
+  playlist:[],         // TOTA la playlist (de provider, CSV o textarea)
+  locQueue:[],         // cua random per al locutor (tota la playlist)
+  locRandomSeed:'',    // llavor de la cua del locutor
+  locIdx:-1,           // índex actual a la cua
+  played:[]            // històric “Han sonat”
+};
+
+const DEMO=`Dua Lipa — Levitating
+ABBA — Dancing Queen
+Queen — Don't Stop Me Now
+Coldplay — Viva la Vida
+Kate Bush — Running Up That Hill
+Shakira — Hips Don't Lie
+Daft Punk — Get Lucky
+Michael Jackson — Billie Jean
+Rosalía — Despechá
+The Weeknd — Blinding Lights
+Adele — Rolling in the Deep
+Backstreet Boys — I Want It That Way
+Oques Grasses — Serem ocells
+Txarango — Compta amb mi
+Lax'n'Busto — Llença't
+U2 — Beautiful Day
+George Michael — Faith`;
+
+const grid=$('#grid'),pinInput=$('#pin'),pinDisplay=$('#pinDisplay'),source=$('#source');
+const status=$('#status'),statusSeed=$('#status-seed'),marksEl=$('#marks'),linesEl=$('#lines');
+const playlistUrl=$('#playlistUrl'),playlistProvider=$('#playlistProvider'),providerKey=$('#providerKey');
+const csvBtn=$('#btnImportCSV'),csvInput=$('#csvFile'),xlsxBtn=$('#btnImportXLSX'),xlsxInput=$('#xlsxFile');
+const pdfFormat=$('#pdfFormat'),showMeta=$('#showMeta');
+
+/* ===== Lògica de cartró ===== */
+function parseList(t){
+  return t.split(/\n+/).map(l=>l.trim()).filter(Boolean).map(line=>{
+    const m=line.split(/\s*[—-]\s*|\s+-\s+/);
+    return {artist:m[0]||'(artista)',title:m[1]||'(cançó)'}
+  })
+}
+function updatePIN(){pinDisplay.textContent=state.pin||'—'}
+function dedupe(entries){
+  const seen=new Set();
+  return entries.filter(e=>{
+    const k=slug(e.artist+'-'+e.title);
+    if(seen.has(k)) return false; seen.add(k); return true;
+  })
+}
+function pickN(entries,r,need){
+  const list=state.preventDupes?dedupe(entries):entries.slice();
+  return seededShuffle(list,r).slice(0,need)
+}
+function buildGrid(items){
+  const rows=state.rows, cols=state.cols, total=rows*cols;
+  grid.innerHTML='';
+  grid.style.gridTemplateColumns=`repeat(${cols},1fr)`;
+  for(let i=0;i<total;i++){
+    const e = items[i] || {artist:'(artista)',title:'(cançó)'};
+    const cell=document.createElement('div');
+    cell.className='cell';cell.dataset.idx=i;cell.tabIndex=0;
+    cell.innerHTML=`<div class="artist">${e.artist}</div><div class="title">${e.title}</div>`;
+    cell.addEventListener('click',()=>toggleMark(i,cell));
+    cell.addEventListener('keydown',ev=>{if(ev.key===' '||ev.key==='Enter'){ev.preventDefault();toggleMark(i,cell)}});
+    grid.appendChild(cell)
+  }
+  // Centre lliure (si imparell)
+  const totalCells=rows*cols;
+  $('#total') && ($('#total').textContent = String(totalCells));
+  $('#rowsKpi') && ($('#rowsKpi').textContent = String(rows));
+  updateCounts()
+}
+function toggleMark(i,cell){
+  if(state.marks.has(i)){state.marks.delete(i);cell.classList.remove('mark')}
+  else{state.marks.add(i);cell.classList.add('mark')}
+  updateCounts();checkAuto()
+}
+function updateCounts(){marksEl.textContent=state.marks.size;linesEl.textContent=countLines()}
+function countLines(){
+  let lines=0, rows=state.rows, cols=state.cols;
+  for(let r=0;r<rows;r++){
+    const s=r*cols; let ok=true;
+    for(let c=0;c<cols;c++) if(!state.marks.has(s+c)) ok=false;
+    if(ok) lines++;
+  }
+  return lines;
+}
+const modal=$('#modal'),modalTitle=$('#modalTitle'),modalMsg=$('#modalMsg');
+$('#modalOk').onclick=()=>modal.classList.remove('show');
+function celebrate(t,m){modalTitle.textContent=t;modalMsg.textContent=m;modal.classList.add('show');confetti()}
+
+const fx=document.getElementById('fx'),ctx=fx.getContext('2d');let parts=[],fxActive=false;
+function confetti(){
+  const w=fx.width=innerWidth,h=fx.height=innerHeight;
+  parts=Array.from({length:140},()=>({x:Math.random()*w,y:-20-Math.random()*h,s:4+Math.random()*6,v:2+Math.random()*3,r:Math.random()*Math.PI,dr:(Math.random()-.5)*.2}));
+  if(!fxActive){fxActive=true;requestAnimationFrame(loop)}
+  function loop(){
+    ctx.clearRect(0,0,fx.width,fx.height);
+    parts.forEach(p=>{
+      p.y+=p.v;p.r+=p.dr;
+      ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.r);
+      ctx.fillStyle=`hsl(${(p.y/3)%360},90%,60%)`;ctx.fillRect(-p.s/2,-p.s/2,p.s,p.s);
+      ctx.restore()
+    });
+    if(parts[0]&&parts[0].y<innerHeight+40)requestAnimationFrame(loop);else fxActive=false
+  }
+}
+
+const hash32=s=>{let h=2166136261>>>0;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)>>>0}return h>>>0};
+function setStatus(msg){status.textContent=msg}
+
+function generate(){
+  const raw=source.value.trim()||DEMO;
+  const entries=parseList(raw);
+  // respecta cols variables
+  state.cols = parseInt($('#cols')?.value||'5',10) || 5;
+  const need = state.rows * state.cols;
+  if(entries.length<need){setStatus(`Calen almenys ${need} entrades.`);return}
+  const seedStr=($('#seed').value.trim()||Date.now().toString(36));
+  state.seed=seedStr;statusSeed.textContent=seedStr;
+  state.preventDupes=$('#preventDupes').checked;
+  const r=rand(hash32(seedStr));
+  const list=pickN(entries,r,need);
+  state.entries=list;state.marks.clear();
+  checkAuto._lineShown=false;checkAuto._bingoShown=false;
+  buildGrid(list);
+  $('#total') && ($('#total').textContent=String(need));
+  $('#rowsKpi') && ($('#rowsKpi').textContent=String(state.rows));
+  setStatus('Cartró generat.');
+}
+
+function checkAuto(){
+  const lines=countLines();
+  if(lines>=1&&!checkAuto._lineShown){celebrate('Línia!','Has completat una línia');checkAuto._lineShown=true}
+  if(state.marks.size>=state.rows*state.cols&&!checkAuto._bingoShown){celebrate('Bingo!','Has completat el cartró');checkAuto._bingoShown=true}
+}
+
+/* ===== Impressió A4 vertical · 2 per pàgina ===== */
+function buildA4TwoUpHtml(cards){
+  const head=`
+  <!DOCTYPE html><html><head><meta charset="utf-8">
+  <title>Imprimir · Quina Musical</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800;900&display=swap" rel="stylesheet">
+  <style>
+    @page{size:A4 portrait;margin:10mm}
+    html,body{height:100%}
+    body{margin:0;background:#fff;color:#0c0f14;font-family:"Poppins",system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial}
+    .page{page-break-after:always;padding:0;display:flex;flex-direction:column;gap:10mm;align-items:stretch;justify-content:flex-start}
+    .slot{width:100%;aspect-ratio:1400/950;display:block}
+    .sheet{background:#fff;border:2px solid #111;border-radius:0;color:#0c0f14;overflow:hidden}
+    .sheet-inner{padding:16px 16px 8px}
+    .sheet-header{display:flex;flex-direction:column;align-items:center;gap:4px;margin-bottom:8px;text-align:center}
+    .brand{font-weight:900;letter-spacing:.8px}
+    .pin{color:#6a6a6a;font-weight:800;font-size:12px}
+    .grid{display:grid;gap:8px} /* cada targeta porta el seu style="grid-template-columns:repeat(X,1fr)" */
+    .cell{border:2px solid #0c0f14;border-radius:12px;padding:10px;min-height:68px;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center}
+    .artist{font-weight:800}.title{font-weight:600;opacity:.85;font-size:12px;margin-top:2px}
+    .footer{padding:10px 14px;text-align:center;font-weight:800;border-top:2px solid #0c0f14}
+  </style></head><body>`;
+  const tail='</body></html>';
+  let html=head;
+  for(let i=0;i<cards.length;i+=2){
+    html+='<div class="page">';
+    html+=`<div class="slot">${cards[i]}</div>`;
+    if(cards[i+1]) html+=`<div class="slot">${cards[i+1]}</div>`;
+    html+='</div>';
+  }
+  html+=tail; return html;
+}
+function cloneSheetWith(list, opts){
+  const node=$('#sheet').cloneNode(true); node.id='';
+  const pinSpan=node.querySelector('#pinDisplay'); if(pinSpan) pinSpan.textContent=opts.pin || '—';
+  const g=node.querySelector('.grid'); g.innerHTML='';
+  // Força columnes variables a cada targeta impresa
+  g.setAttribute('style',`grid-template-columns:repeat(${state.cols},1fr)`);
+  const total = state.rows * state.cols;
+  for(let i=0;i<total;i++){
+    const it=list[i]||{artist:'(artista)',title:'(cançó)'};
+    const d=document.createElement('div'); d.className='cell';
+    d.innerHTML=`<div class="artist">${it.artist}</div><div class="title">${it.title}</div>`;
+    g.appendChild(d);
+  }
+  return node.outerHTML;
+}
+function printTwoUpA4(){
+  try{
+    const raw=source.value.trim()||DEMO; const all=parseList(raw);
+    state.cols = parseInt($('#cols')?.value||'5',10) || 5;
+    const need = state.rows * state.cols;
+    if(all.length<need){setStatus(`Calen almenys ${need} entrades.`);return}
+    const want=Math.max(1,Math.min(200,parseInt($('#cardsCount').value||'2',10)));
+    const baseSeed = state.seed || Date.now().toString(36);
+    const cardsHtml=[];
+    for(let i=0;i<want;i++){
+      const r=rand(hash32(baseSeed+'#'+i)); const list=pickN(all,r,need);
+      const html=cloneSheetWith(list,{pin: state.pin});
+      cardsHtml.push(html);
+    }
+    const html=buildA4TwoUpHtml(cardsHtml);
+    const w=open('about:blank','_blank','noopener'); if(!w){ alert('Permet emergents per imprimir.'); return; }
+    w.document.open(); w.document.write(html); w.document.close();
+    setTimeout(()=>{ try{ w.focus(); w.print(); }catch{} }, 50);
+    setStatus(`Impressió preparada (${want} cartrons, A4 · 2/pàgina).`);
+  }catch(err){ console.error(err); alert('No s\'ha pogut preparar la impressió A4'); }
+}
+
+/* PDF (variable rows/cols — sense QR) */
+async function downloadPDF(){
+  const btn = $('#btnDownloadPDF');
+  try{
+    btn && btn.classList.add('busy');
+    const { jsPDF } = window.jspdf || {};
+    if(!jsPDF){
+      const s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js';
+      await new Promise((res, rej) => { s.onload = res; s.onerror = rej; document.head.appendChild(s); });
+    }
+    const { jsPDF: Ctor } = window.jspdf;
+
+    /* ===== Fonts PDF: Poppins embed (runtime fetch + cache) ===== */
+    const PoppinsLoader=(function(){
+      const cache={ ok:false, tried:false };
+      const SRC={
+        400:[
+          'https://cdn.jsdelivr.net/npm/@fontsource/poppins@5.0.8/files/poppins-latin-400-normal.ttf',
+          'https://unpkg.com/@fontsource/poppins@5.0.8/files/poppins-latin-400-normal.ttf'
+        ],
+        600:[
+          'https://cdn.jsdelivr.net/npm/@fontsource/poppins@5.0.8/files/poppins-latin-600-normal.ttf',
+          'https://unpkg.com/@fontsource/poppins@5.0.8/files/poppins-latin-600-normal.ttf'
+        ],
+        700:[
+          'https://cdn.jsdelivr.net/npm/@fontsource/poppins@5.0.8/files/poppins-latin-700-normal.ttf',
+          'https://unpkg.com/@fontsource/poppins@5.0.8/files/poppins-latin-700-normal.ttf'
+        ]
+      };
+      async function fetchAsBase64(url){
+        const r=await fetch(url,{mode:'cors'}); if(!r.ok) throw new Error('font fetch '+r.status);
+        const ab=await r.arrayBuffer(); let bin=''; const u8=new Uint8Array(ab);
+        for(let i=0;i<u8.length;i++) bin+=String.fromCharCode(u8[i]);
+        return btoa(bin);
+      }
+      async function firstOk(urls){
+        for(const u of urls){ try{ return await fetchAsBase64(u) } catch{} }
+        throw new Error('no font source');
+      }
+      async function ensure(pdf){
+        if(cache.ok) return true;
+        if(cache.tried) return false;
+        cache.tried=true;
+        try{
+          const [r400,r600,r700] = await Promise.all([
+            firstOk(SRC[400]), firstOk(SRC[600]), firstOk(SRC[700])
+          ]);
+          pdf.addFileToVFS('Poppins-Regular.ttf', r400);
+          pdf.addFileToVFS('Poppins-SemiBold.ttf', r600);
+          pdf.addFileToVFS('Poppins-Bold.ttf', r700);
+          pdf.addFont('Poppins-Regular.ttf','Poppins','normal');
+          pdf.addFont('Poppins-SemiBold.ttf','Poppins','semibold');
+          pdf.addFont('Poppins-Bold.ttf','Poppins','bold');
+          cache.ok=true;
+          return true;
+        }catch(e){ console.warn('Poppins embed failed', e); return false; }
+      }
+      return { ensure };
+    })();
+
+    const cc = document.querySelector('#cardsCount');
+    const cards = Math.max(1, Math.min(200, parseInt((cc ? cc.value : '2'), 10)));
+
+    const raw = source.value.trim() || DEMO;
+    const entries = parseList(raw);
+    // Respecta cols actuals del UI (v2-style)
+    state.cols = parseInt(document.querySelector('#cols')?.value||'5', 10) || 5;
+    const rows = state.rows || 3;
+    const cols = state.cols;
+    const need = rows * cols;
+    if(entries.length < need){ setStatus(`Calen almenys ${need} entrades.`); return }
+
+    if(document.fonts && document.fonts.ready){ try{ await document.fonts.ready }catch{} }
+    const show = $('#showMeta').checked;
+    const hc = $('#pdfHC')?.checked || false;
+    const seed = state.seed || Date.now().toString(36);
+
+    const fmt = $('#pdfFormat').value;
+    let pdf, pageW, pageH;
+    if(fmt === 'a4-2up'){ pdf = new Ctor({ orientation:'portrait', unit:'mm', format:'a4' }); }
+    else{ pdf = new Ctor({ orientation:'landscape', unit:'mm', format:'a5' }); }
+    try{ await PoppinsLoader.ensure(pdf); }catch{}
+    pageW = pdf.internal.pageSize.getWidth();
+    pageH = pdf.internal.pageSize.getHeight();
+
+    const margin = 10;
+    let n = 0;
+    for(let i=0; i<cards; i++){
+      const r = rand(hash32(seed + '#' + i));
+      // Dempeus a lògica v2: sense dupes i tallant a rows*cols
+      const list = seededShuffle(dedupe(entries), r).slice(0, need);
+
+      if(fmt === 'a4-2up'){
+        if(n % 2 === 0){ if(i > 0) pdf.addPage(); }
+        const row = n % 2;
+        const innerW = (pageW - 2*margin);
+        const innerH = ((pageH - 2*margin) - 10) / 2;
+        const x = margin, y = margin + row * (innerH + 10);
+        drawVectorCardInRect(pdf, list, { x, y, w: innerW, h: innerH }, { brand:'QUINA MUSICAL LA CANYA', pin:state.pin, seed, cardNo:i+1, showMeta:show, rows, cols, hc });
+        n++;
+      }else{
+        if(i > 0) pdf.addPage();
+        drawVectorCardInRect(pdf, list, { x: margin, y: margin, w: pageW - 2*margin, h: pageH - 2*margin }, { brand:'QUINA MUSICAL LA CANYA', pin:state.pin, seed, cardNo:i+1, showMeta:show, rows, cols, hc });
+        n++;
+      }
+    }
+    const blob = pdf.output('blob');
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'quina-v2.pdf';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url), 30000);
+    setStatus('PDF generat');
+  }catch(e){
+    console.error('downloadPDF (v1) error:', e);
+    alert('No s\'ha pogut generar el PDF');
+  }finally{
+    btn && btn.classList.remove('busy');
+  }
+}
+
+function drawVectorCardInRect(pdf,list,rect,opt){
+  const {x,y,w,h}=rect;
+  const rows = Math.max(1, opt.rows || 3);
+  const cols = Math.max(1, opt.cols || 5);
+  const HC = !!opt.hc;
+
+  // Colors i línies (alt-contrast vs normal)
+  const C_BORDER = HC ? 0 : 40;
+  const C_TEXT = 0, C_SUB = HC ? 80 : 70, C_RULE = HC ? 120 : 220;
+  const LW_CARD = HC ? 1.0 : 0.9, LW_CELL = HC ? 0.45 : 0.35;
+
+  // Fonts (Poppins si disponible)
+  const hasPoppins = (pdf.getFontList && pdf.getFontList().Poppins);
+  const FONT = hasPoppins ? 'Poppins' : 'helvetica';
+  const BOLD = hasPoppins ? 'bold' : 'bold';
+  const REG  = 'normal';
+
+  // Marc general
+  pdf.setDrawColor(C_BORDER); pdf.setTextColor(C_TEXT);
+  pdf.setLineWidth(LW_CARD);
+  pdf.roundedRect(x, y, w, h, 3, 3, 'S');
+
+  // Capçalera: marca a l'esquerra, meta a la dreta
+  pdf.setFont(FONT, BOLD); pdf.setFontSize(15);
+  pdf.text(opt.brand, x + 2, y + 7);
+  let headerBottom = y + 10;
+  if(opt.showMeta){
+    pdf.setFont(FONT, REG); pdf.setTextColor(C_SUB); pdf.setFontSize(8.5);
+    const meta = `PIN ${opt.pin || '—'}  ·  Seed ${opt.seed}  ·  Nº ${opt.cardNo}`;
+    pdf.text(meta, x + w - 2, y + 7, { align:'right' });
+    headerBottom = y + 15;
+  }
+  pdf.setDrawColor(C_RULE); pdf.setLineWidth(0.2);
+  pdf.line(x, headerBottom + 2, x + w, headerBottom + 2);
+
+  // Zones
+  const footerH = 8;
+  const gridTop = headerBottom + 4;
+  const gridBottom = y + h - footerH;
+  const gridH = Math.max(10, gridBottom - gridTop);
+  const gridW = w;
+  const cw = gridW / cols, ch = gridH / rows;
+
+  // Escalat auto segons mida de cel·la (mm)
+  const s = Math.min(cw, ch);
+  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+  const pad = clamp(s*0.18, 2.2, 3.6);                // padding intern
+  const artistSize = clamp(s*0.42, 9, 13);            // mida artista
+  const titleSize  = clamp(s*0.34, 8, 11);            // mida títol
+  pdf.setLineHeightFactor(1.15);
+
+  // Dibuix de cel·les
+  pdf.setLineWidth(LW_CELL); pdf.setDrawColor(C_BORDER);
+  let idx = 0;
+  for(let r=0; r<rows; r++){
+    for(let c=0; c<cols; c++){
+      const cx = x + c*cw, cy = gridTop + r*ch;
+      pdf.roundedRect(cx, cy, cw, ch, 2, 2, 'S');
+
+      // Dades (sense centre lliure)
+      const it = list[idx++] || { artist:'(artista)', title:'(cançó)' };
+      const artist = it.artist, title = it.title;
+
+      // Wrapping + centrat
+      const textW = cw - pad*2;
+      pdf.setTextColor(C_TEXT); pdf.setFont(FONT, BOLD); pdf.setFontSize(artistSize);
+      const aLines = pdf.splitTextToSize(artist, textW);
+      pdf.setTextColor(C_SUB); pdf.setFont(FONT, REG); pdf.setFontSize(titleSize);
+      const tLines = title ? pdf.splitTextToSize(title, textW) : [];
+
+      const aH = aLines.length * artistSize * 0.3528 * 1.15;
+      const gap = tLines.length ? 1.8 : 0;
+      const tH = tLines.length * titleSize * 0.3528 * 1.15;
+      const blockH = aH + gap + tH;
+      const spaceY = (ch - pad*2) - blockH;
+      let textTop = cy + pad + Math.max(0, spaceY/2);
+      textTop = Math.min(textTop, cy + ch - pad - blockH);
+      const midX = cx + cw/2;
+
+      pdf.setTextColor(C_TEXT); pdf.setFont(FONT, BOLD); pdf.setFontSize(artistSize);
+      pdf.text(aLines, midX, textTop, { align:'center', maxWidth: textW });
+      if(tLines.length){
+        pdf.setTextColor(C_SUB); pdf.setFont(FONT, REG); pdf.setFontSize(titleSize);
+        pdf.text(tLines, midX, textTop + aH + gap, { align:'center', maxWidth: textW });
+      }
+      pdf.setTextColor(C_TEXT);
+    }
+  }
+  // Peu
+  pdf.setFont(FONT, BOLD); pdf.setFontSize(9.5); pdf.setTextColor(C_TEXT);
+  pdf.text('Marca les cançons quan sonin. Primer, Línia; després, Bingo!', x + w/2, y + h - 3, { align: 'center' });
+}
+
+const trim=(s,n)=> (s||'').length>n?(s.slice(0,n-1)+'…'):s;
+
+/* Marca si la cançó actual és al cartró */
+function norm(s){ return (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim(); }
+function sameSong(a,b){
+  return norm(a.artist)===norm(b.artist) && norm(a.title)===norm(b.title);
+}
+function markIfOnCard(entry){
+  if(!entry || !state.entries || !state.entries.length) return;
+  const rows = state.rows, cols = state.cols;
+  const total = rows*cols;
+  for(let i=0;i<total;i++){
+    const it = state.entries[i];
+    if(it && sameSong(it, entry)){
+      const cell = grid.children[i];
+      if(cell && !state.marks.has(i)){ state.marks.add(i); cell.classList.add('mark'); updateCounts(); checkAuto(); }
+      return;
+    }
+  }
+}
+
+/* ===== Importadors CSV/XLSX ===== */
+function parseCSV(text){
+  const rows=[];let cur='',inQ=false,row=[];
+  for(let i=0;i<text.length;i++){
+    const ch=text[i],nx=text[i+1];
+    if(inQ){ if(ch==='"'&&nx==='"'){cur+='"';i++} else if(ch==='"'){inQ=false} else cur+=ch; }
+    else{
+      if(ch==='"'){inQ=true}
+      else if(ch===','||ch===';'){row.push(cur.trim());cur=''}
+      else if(ch==='\n'||ch==='\r'){ if(cur!==''||row.length){row.push(cur.trim());rows.push(row);row=[];cur=''} }
+      else cur+=ch
+    }
+  }
+  if(cur!==''||row.length){row.push(cur.trim());rows.push(row)}
+  return rows.filter(r=>r.length>0)
+}
+function importCSV(file){
+  const r=new FileReader();
+  r.onload=()=>{
+    const rows=parseCSV(String(r.result||''));let start=0;
+    const hdr=rows[0]?.map(h=>h.toLowerCase());
+    const hA=hdr?.findIndex(h=>/artist|artista/.test(h));
+    const hT=hdr?.findIndex(h=>/title|titol|títol|canco|cançó|cancion/.test(h));
+    if(hA>-1&&hT>-1)start=1;
+    const items=[];
+    for(let i=start;i<rows.length;i++){
+      const rr=rows[i];
+      const artist=(hA>-1&&hT>-1)?(rr[hA]||''):(rr[0]||'');
+      const title =(hA>-1&&hT>-1)?(rr[hT]||''):(rr[1]||'');
+      if(artist||title)items.push({artist:artist||'(artista)',title:title||'(cançó)'})
+    }
+    if(!items.length){setStatus('CSV buit');toast('CSV sense dades');return}
+    source.value=items.map(({artist,title})=>`${artist} — ${title}`).join('\n');
+    toast(`Importats ${items.length} temes`); generate();
+    state.playlist = items.slice();
+    state.locRandomSeed = Date.now().toString(36);
+    buildLocutorQueueFromPlaylistRandom();
+  };
+  r.onerror=()=>{setStatus('Error CSV')};
+  r.readAsText(file,'utf-8')
+}
+function importXLSX(file){
+  const fr=new FileReader();
+  fr.onload=()=>{
+    const data=new Uint8Array(fr.result);
+    const wb=XLSX.read(data,{type:'array'});
+    const ws=wb.Sheets[wb.SheetNames[0]];
+    const rows=XLSX.utils.sheet_to_json(ws,{header:1});
+    const items=[];
+    for(let i=0;i<rows.length;i++){
+      const r=rows[i];
+      const artist=(r[0]||'').toString().trim();
+      const title =(r[1]||'').toString().trim();
+      if(artist||title)items.push({artist:artist||'(artista)',title:title||'(cançó)'})
+    }
+    if(!items.length){setStatus('XLSX buit');toast('XLSX sense dades');return}
+    source.value=items.map(({artist,title})=>`${artist} — ${title}`).join('\n');
+    toast(`Importats ${items.length} temes`); generate();
+    state.playlist = items.slice();
+    state.locRandomSeed = Date.now().toString(36);
+    buildLocutorQueueFromPlaylistRandom();
+  };
+  fr.readAsArrayBuffer(file)
+}
+
+/* ===== Playlist helpers ===== */
+function detectProvider(u){
+  if(/youtube\.com\/playlist/.test(u) || /[?&]list=/.test(u)) return 'youtube';
+  if(/open\.spotify\.com\/playlist\//.test(u)) return 'spotify';
+  if(/music\.apple\.com\//.test(u) && /\/playlist\//.test(u)) return 'apple';
+  return 'unknown';
+}
+function getParam(u,name){ try{ return new URL(u).searchParams.get(name); }catch{ return null; } }
+
+/* ===== Fetch YouTube (API v3) ===== */
+async function fetchYouTube(u, apiKey){
+  if(!apiKey) throw new Error('Cal API Key YouTube');
+  const listId = getParam(u,'list');
+  if(!listId) throw new Error('Playlist ID no trobat');
+  let nextPageToken = '';
+  const items = [];
+  do{
+    const api = `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=50&playlistId=${encodeURIComponent(listId)}&key=${encodeURIComponent(apiKey)}${nextPageToken?`&pageToken=${nextPageToken}`:''}`;
+    const res = await fetch(api);
+    if(!res.ok) throw new Error('YouTube API error');
+    const data = await res.json();
+    (data.items||[]).forEach(it=>{
+      const s = it.snippet || {};
+      const full = s.title||'';
+      const m = full.split(/\s[-–—]\s/);
+      const artist = m.length>=2 ? m[0] : (s.videoOwnerChannelTitle||'(artista)');
+      const title  = m.length>=2 ? m.slice(1).join(' - ') : (full || '(cançó)');
+      const vid = (s.resourceId && s.resourceId.videoId) || null;
+      const url = vid ? `https://www.youtube.com/watch?v=${vid}` : null;
+      items.push({artist,title,url,videoId:vid,provider:'youtube'});
+    });
+    nextPageToken = data.nextPageToken;
+  } while(nextPageToken);
+  return items;
+}
+
+/* ===== Fetch Spotify (PKCE token o manual) ===== */
+async function fetchSpotify(u, token){
+  if(!token) throw new Error('Cal token OAuth Spotify');
+  const id = (u.match(/playlist\/([A-Za-z0-9]+)(?:\?|$)/)||[])[1];
+  if(!id) throw new Error('Playlist ID no trobat');
+  let url = `https://api.spotify.com/v1/playlists/${id}/tracks?limit=100`;
+  const items = [];
+  while(url){
+    const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` }});
+    if(!res.ok) throw new Error('Spotify API error');
+    const data = await res.json();
+    (data.items||[]).forEach(it=>{
+      const tr=it.track;
+      if(tr){
+        const artist = (tr.artists&&tr.artists[0]&&tr.artists[0].name)||'(artista)';
+        const title  = tr.name||'(cançó)';
+        const url    = (tr.external_urls&&tr.external_urls.spotify)||null;
+        const uri    = tr.uri; // 👈 per al Web Playback SDK
+        items.push({artist,title,url,uri,provider:'spotify'});
+      }
+    });
+    url = data.next;
+  }
+  return items;
+}
+
+/* ===== Fetch Apple Music (token dev al camp Provider Key) ===== */
+async function fetchAppleMusic(u, devToken){
+  if(!devToken) throw new Error('Cal Apple Music Developer Token');
+  const m = u.match(/music\.apple\.com\/([a-zA-Z]{2})\/playlist\/[^/]+\/(pl\.[A-Za-z0-9\-_.]+)/);
+  const country = (m && m[1]) || 'es';
+  const plId = (m && m[2]);
+  if(!plId) throw new Error('Playlist ID no trobat');
+  const api = `https://api.music.apple.com/v1/catalog/${country}/playlists/${plId}?include=tracks`;
+  const res = await fetch(api, { headers: { Authorization: `Bearer ${devToken}` }});
+  if(!res.ok) throw new Error('Apple Music API error');
+  const data = await res.json();
+  const tracks = ((((data.data||[])[0]||{}).relationships||{}).tracks||{}).data || [];
+  return tracks.map(t=>{
+    const artist = (t.attributes && t.attributes.artistName) || '(artista)';
+    const title  = (t.attributes && t.attributes.name) || '(cançó)';
+    const url    = (t.attributes && t.attributes.url) || null;
+    return {artist,title,url,provider:'apple'};
+  });
+}
+
+/* ===== Carregar playlist (UI) ===== */
+async function loadPlaylist(){
+  const url=(playlistUrl?.value||'').trim();
+  if(!url){ setStatus('Posa un enllaç de playlist.'); return; }
+  const provider=(playlistProvider && playlistProvider.value!=='auto') ? playlistProvider.value : detectProvider(url);
+  try{
+    setStatus('Carregant playlist…');
+    let items=[];
+    if(provider==='youtube') items = await fetchYouTube(url,(providerKey?.value||'').trim());
+    else if(provider==='spotify'){
+      const manual = (providerKey?.value||'').trim();
+      const token = manual || (await spotifyGetValidToken());
+      if(!token){ setStatus('Cal Connectar Spotify (Premium)'); toast('Prem Connecta amb Spotify'); return; }
+      items = await fetchSpotify(url, token);
+    }
+    else if(provider==='apple') items = await fetchAppleMusic(url,(providerKey?.value||'').trim());
+    else { setStatus('No s\'ha detectat proveïdor'); return; }
+
+    if(!items.length){ setStatus('No s\'han trobat cançons.'); return; }
+
+    // Posa-ho al text, genera cartró i configura locutor per TOTA la playlist
+    source.value = items.map(({artist,title})=>`${artist} — ${title}`).join('\n');
+    toast(`S\'han carregat ${items.length} temes`);
+    generate();
+    state.playlist = items.slice();
+    state.locRandomSeed = Date.now().toString(36);
+    buildLocutorQueueFromPlaylistRandom();
+    setStatus(`Playlist carregada (${items.length})`);
+    $('#locutor').style.display = 'block';
+    if (!state.locQueue.length) buildLocutorQueueFromPlaylistRandom();
+  }catch(err){
+    console.error('[playlist]',err);
+    setStatus('Error carregant la playlist');
+    toast('Error carregant la playlist');
+  }
+}
+
+/* ===== Mode Locutor: playlist completa (random) ===== */
+function playlistBase(){
+  if(state.playlist && state.playlist.length) return state.playlist.slice();
+  const raw = source.value.trim();
+  return raw ? parseList(raw) : [];
+}
+function buildLocutorQueueFromPlaylistRandom(){
+  const base = playlistBase();
+  if(!base.length){ state.locQueue=[]; state.locIdx=-1; updateLocutorUI(); return; }
+  const seedStr = state.locRandomSeed || state.seed || Date.now().toString(36);
+  const r = rand(hash32(seedStr));
+  state.locQueue = seededShuffle(base, r);
+  state.locIdx = 0;
+  state.played = state.played || [];
+  updateLocutorUI(); saveLocutor();
+}
+function currentEntry(){
+  if(!state.locQueue || !state.locQueue.length) return null;
+  const i = Math.max(0, Math.min(state.locIdx, state.locQueue.length-1));
+  return state.locQueue[i] || null;
+}
+function updateLocutorUI(){
+  const cur = currentEntry();
+  $('#locNow').textContent = cur ? `${cur.artist} — ${cur.title}` : '—';
+  const list = $('#locPlayed');
+  if(list) list.innerHTML = (state.played||[]).map(e=>`<li>${e.artist} — ${e.title}</li>`).join('') || '';
+  saveLocutor();
+}
+function locPrev(){ if(!state.locQueue.length) return; state.locIdx = Math.max(0, state.locIdx-1); updateLocutorUI(); }
+function locNext(skipMark=false){
+  if(!state.locQueue.length) return;
+  const cur = currentEntry();
+  if(!skipMark && cur) state.played.push(cur);
+  state.locIdx = Math.min(state.locQueue.length-1, state.locIdx+1);
+  updateLocutorUI();
+}
+
+/* ======== Spotify Premium: Web Playback SDK ======== */
+const SPOTIFY = {
+  clientId: '55fd39eb5e914973affb017f5b9d1fd6',
+  redirectUri: location.origin + location.pathname, // ha d'estar al Dashboard
+  scopes: [
+    'streaming',                   // 👈 Necessari per Web Playback
+    'user-read-email',
+    'user-read-private',
+    'user-modify-playback-state',  // play/pause/transfer
+    'user-read-playback-state',
+    'playlist-read-private',
+    'playlist-read-collaborative'
+  ]
+};
+const SPOT_KEYS = {
+  token: 'qm_spotify_token',
+  exp:   'qm_spotify_token_exp',
+  refresh: 'qm_spotify_refresh',
+  ver:   'qm_spotify_verifier',
+  state: 'qm_spotify_state'
+};
+function setLS(k,v){ try{ localStorage.setItem(k,v) }catch{} }
+function getLS(k){ try{ return localStorage.getItem(k) }catch{ return null } }
+function delLS(k){ try{ localStorage.removeItem(k) }catch{} }
+function b64url(buf){ return btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''); }
+function str2buf(str){ return new TextEncoder().encode(str); }
+async function sha256(str){ const buf = await crypto.subtle.digest('SHA-256', str2buf(str)); return new Uint8Array(buf); }
+function randStr(n=64){ const chars='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~'; let s=''; for(let i=0;i<n;i++) s+=chars[Math.floor(Math.random()*chars.length)]; return s; }
+
+function spotifyStoredAccessToken(){
+  const t=getLS(SPOT_KEYS.token), e=+(getLS(SPOT_KEYS.exp)||0);
+  if(t && Date.now()<e-60000) return t;
+  return null;
+}
+async function spotifyGetValidToken(){
+  const valid = spotifyStoredAccessToken();
+  if(valid) return valid;
+
+  // Prova refresh token si el tenim
+  const refresh = getLS(SPOT_KEYS.refresh);
+  if(refresh){
+    try{
+      const body = new URLSearchParams({
+        client_id: SPOTIFY.clientId,
+        grant_type: 'refresh_token',
+        refresh_token: refresh
+      });
+      const res = await fetch('https://accounts.spotify.com/api/token',{
+        method:'POST',
+        headers:{'Content-Type':'application/x-www-form-urlencoded'},
+        body
+      });
+      if(res.ok){
+        const data = await res.json();
+        const token = data.access_token;
+        const ttl = data.expires_in||3600;
+        if(token){
+          setLS(SPOT_KEYS.token, token);
+          setLS(SPOT_KEYS.exp, String(Date.now()+ttl*1000));
+          if(data.refresh_token) setLS(SPOT_KEYS.refresh, data.refresh_token);
+          return token;
+        }
+      }
+    }catch(e){}
+  }
+  return null;
+}
+async function spotifyLogin(){
+  const codeVerifier = randStr(64);
+  const codeChallenge = b64url(await sha256(codeVerifier));
+  const state = randStr(16);
+  setLS(SPOT_KEYS.ver, codeVerifier);
+  setLS(SPOT_KEYS.state, state);
+  const authUrl = new URL('https://accounts.spotify.com/authorize');
+  authUrl.searchParams.set('response_type','code');
+  authUrl.searchParams.set('client_id', SPOTIFY.clientId);
+  authUrl.searchParams.set('redirect_uri', SPOTIFY.redirectUri);
+  authUrl.searchParams.set('scope', SPOTIFY.scopes.join(' '));
+  authUrl.searchParams.set('code_challenge_method','S256');
+  authUrl.searchParams.set('code_challenge', codeChallenge);
+  authUrl.searchParams.set('state', state);
+  location.href = authUrl.toString();
+}
+async function spotifyHandleRedirect(){
+  const params = new URLSearchParams(location.search);
+  const code = params.get('code');
+  const state = params.get('state');
+  if(!code) return false;
+  const savedState = getLS(SPOT_KEYS.state);
+  if(!state || state!==savedState){ toast('Error estat Spotify'); return false; }
+  delLS(SPOT_KEYS.state);
+  const codeVerifier = getLS(SPOT_KEYS.ver);
+  delLS(SPOT_KEYS.ver);
+
+  const body = new URLSearchParams({
+    client_id: SPOTIFY.clientId,
+    grant_type: 'authorization_code',
+    code,
+    redirect_uri: SPOTIFY.redirectUri,
+    code_verifier: codeVerifier
+  });
+  try{
+    const res = await fetch('https://accounts.spotify.com/api/token',{
+      method:'POST',
+      headers:{'Content-Type':'application/x-www-form-urlencoded'},
+      body
+    });
+    if(!res.ok){
+      const txt = await res.text().catch(()=> '');
+      console.error('token exchange failed', res.status, txt);
+      toast('No s\'ha pogut obtenir token (revisa Redirect URI)');
+      return false;
+    }
+    const data = await res.json();
+    const token = data.access_token;
+    const ttl = data.expires_in || 3600;
+    if(token){
+      setLS(SPOT_KEYS.token, token);
+      setLS(SPOT_KEYS.exp, String(Date.now()+ttl*1000));
+      if(data.refresh_token) setLS(SPOT_KEYS.refresh, data.refresh_token);
+      toast('Spotify connectat');
+    }
+    history.replaceState({},'',location.origin+location.pathname);
+    return true;
+  }catch(e){ console.error(e); toast('Error Spotify'); return false; }
+}
+/* ===== Web Playback SDK bootstrap (robust) ===== */
+let spPlayer = null, spDeviceId = null, spReady = false, spActivated = false;
+
+(function(){
+  let spotifyInited = false;
+
+  async function initSpotifySDK(){
+    if (spotifyInited || !window.Spotify) return;
+    spotifyInited = true;
+
+    spPlayer = new Spotify.Player({
+      name: 'Quinapp Locutor',
+      getOAuthToken: async cb => {
+        let t = await spotifyGetValidToken();
+        if(!t){ toast('Sessió Spotify caducada'); }
+        cb(t || '');
+      },
+      volume: 0.8
+    });
+
+    spPlayer.addListener('ready', ({ device_id }) => {
+      spDeviceId = device_id;
+      spReady = true;
+      setStatus('Dispositiu Spotify llest');
+    });
+
+    spPlayer.addListener('not_ready', ({ device_id }) => {
+      if (device_id === spDeviceId) spReady = false;
+      setStatus('Dispositiu Spotify no disponible');
+    });
+
+    spPlayer.addListener('initialization_error', e => console.error(e));
+    spPlayer.addListener('authentication_error', e => {
+      console.error('authentication_error', e?.message || e);
+      toast('Error auth Spotify · torna a Connectar');
+    });
+    spPlayer.addListener('account_error', e => { 
+      console.error(e); 
+      toast('Cal Premium per reproduir'); 
+    });
+
+    spPlayer.connect();
+  }
+
+  // handler que el SDK cridarà automàticament
+  window.onSpotifyWebPlaybackSDKReady = initSpotifySDK;
+
+  // si ja està carregat (per cache o execució immediata)
+  if (window.Spotify) initSpotifySDK();
+})();
+
+async function spApi(path, method='GET', body=null, qp=null){
+  async function doFetch(tok){
+    let url = `https://api.spotify.com/v1${path}`;
+    if(qp){ const qs=new URLSearchParams(qp); url += `?${qs}`; }
+    return fetch(url,{
+      method,
+      headers:{ 'Authorization': `Bearer ${tok}`, 'Content-Type': 'application/json' },
+      body: body?JSON.stringify(body):null
+    });
+  }
+  const token1 = await spotifyGetValidToken();
+  if(!token1) throw new Error('Sense token Spotify');
+  let res = await doFetch(token1);
+  if(res.status === 401){
+// token invàlid: neteja i reintenta amb un de nou
+clearSpotifyTokens();
+const token2 = await spotifyGetValidToken();
+if(!token2){ throw new Error('Auth Spotify caducada'); }
+res = await doFetch(token2);
+}
+if(!res.ok){ throw new Error(`Spotify API ${method} ${path} -> ${res.status}`); }
+return res.status===204 ? null : res.json();
+}
+
+function clearSpotifyTokens(){
+  try{
+    delLS(SPOT_KEYS.token);
+    delLS(SPOT_KEYS.exp);
+// NO eliminem refresh per poder renovar; si també falla, el backend tornarà 400/401 i forçarem login.
+}catch{}
+}
+
+async function ensureDeviceActive(){
+if(!spReady || !spDeviceId){ toast('Player Spotify no llest'); return false; }
+try{
+  // Activa i transfereix la sessió al reproductor del navegador
+  await spApi('/me/player','PUT',{ device_ids:[spDeviceId], play:true });
+  // petit delay per donar temps al backend de Spotify
+  await new Promise(r=>setTimeout(r,250));
+  return true;
+}catch(e){
+  console.warn('transfer fail', e);
+  toast('Sessió Spotify caducada o sense permisos. Torna a “Connecta amb Spotify”.');
+  return false;
+}
+}
+async function playSpotifyUri(uri){
+  if(!uri) return;
+  const ok = await ensureDeviceActive();
+  if(!ok) return;
+  try{
+    await spApi('/me/player/play','PUT',{ uris:[uri] },{ device_id: spDeviceId });
+  }catch(e){
+    console.error(e); toast('No s\'ha pogut reproduir'); 
+  }
+}
+async function pauseSpotify(){
+  if(!spDeviceId) return;
+  try{ await spApi('/me/player/pause','PUT',null,{ device_id: spDeviceId }); }catch(e){}
+}
+
+/* ===== Persistència Locutor (PIN + hash playlist + llavor) ===== */
+function playlistHash(){
+  const base = playlistBase();
+  const sig = base.map(e=>`${e.artist}__${e.title}`).join('|');
+  return hash32(sig).toString(16);
+}
+function locSessionKey(){
+  const pin = state.pin || 'no-pin';
+  const ph = playlistHash() || 'no-pl';
+  const locSeed = state.locRandomSeed || 'no-seed';
+  return `qm_locutor_${pin}_${ph}_${locSeed}`;
+}
+function saveLocutor(){
+  const key = locSessionKey();
+  const payload = { locIdx: state.locIdx, played: state.played };
+  try{ localStorage.setItem(key, JSON.stringify(payload)); }catch{}
+}
+function loadLocutor(){
+  const key = locSessionKey();
+  try{
+    const raw = localStorage.getItem(key);
+    if(!raw) return false;
+    const data = JSON.parse(raw);
+    if(!data) return false;
+    state.locIdx = typeof data.locIdx==='number' ? data.locIdx : 0;
+    state.played = Array.isArray(data.played) ? data.played : [];
+    updateLocutorUI();
+    return true;
+  }catch{ return false; }
+}
+
+/* ===== Accions Locutor amb reproducció ===== */
+let isPlaying = false;           // estat simple de play/pause/stop
+const ENABLE_TTS = false;        // deixa-ho a false per silenciar la veu
+
+async function locPlay(){
+  const cur = currentEntry(); 
+  if(!cur) return;
+  
+  // Assegura activació d'àudio del SDK (política autoplay)
+  if (spPlayer && !spActivated) {
+    try { await spPlayer.activateElement(); spActivated = true; }
+    catch (e) { console.warn('activateElement error', e); }
+  }
+
+  // (Opcional) Anunci per veu — desactivat per defecte
+  if (ENABLE_TTS) {
+    try {
+      const s = new SpeechSynthesisUtterance(`${cur.artist}, ${cur.title}`);
+      s.lang = 'ca-ES';
+      speechSynthesis.cancel();
+      speechSynthesis.speak(s);
+    } catch {}
+  }
+  
+  // Si és Spotify i tenim Premium + SDK, reprodueix la pista
+  if(cur.provider==='spotify' && cur.uri){
+    await playSpotifyUri(cur.uri);
+  } else if(cur.url){
+    // Altres proveïdors: obre l’enllaç
+    window.open(cur.url,'_blank','noopener');
+  }
+  markIfOnCard(cur);
+  isPlaying = true;
+}
+// Nova: pausa sense avançar l'índex (per a la barra espaiadora)
+async function locPause(){
+    await pauseSpotify().catch(()=>{});
+    isPlaying = false;
+}
+async function locStop(){
+  // Pausa Spotify si cal i avança marcant com sonada
+  await pauseSpotify().catch(()=>{});
+  const cur = currentEntry();
+  if(cur) state.played.push(cur);
+  state.locIdx = Math.min(state.locQueue.length-1, state.locIdx+1);
+  updateLocutorUI();
+  isPlaying = false;
+}
+function locUndo(){ if(!state.played.length)return; state.played.pop(); state.locIdx = Math.max(0, state.locIdx-1); updateLocutorUI(); }
+function locClear(){ state.played = []; updateLocutorUI(); }
+function locOpen(){
+  const cur = currentEntry(); if(!cur) return;
+  if(cur.url){ window.open(cur.url,'_blank','noopener'); return; }
+  const q = encodeURIComponent(`${cur.artist} ${cur.title}`);
+  const provider = (cur.provider || playlistProvider?.value || 'search');
+  let url = '';
+  if(provider==='spotify') url = `https://open.spotify.com/search/${q}`;
+  else if(provider==='youtube') url = `https://www.youtube.com/results?search_query=${q}`;
+  else if(provider==='apple') url = `https://music.apple.com/search?term=${q}`;
+  else url = `https://www.google.com/search?q=${q}`;
+  window.open(url,'_blank','noopener');
+}
+$('#locPrev').onclick=locPrev;
+$('#locPlay').onclick=()=>{ locPlay(); };
+$('#locStop').onclick=()=>{ locStop(); };
+$('#locNext').onclick=()=>locNext(true);
+$('#locUndo').onclick=locUndo;
+$('#locClear').onclick=locClear;
+$('#locOpen').onclick=locOpen;
+$('#locReshuffle').onclick=()=>{ state.locRandomSeed=Date.now().toString(36); buildLocutorQueueFromPlaylistRandom(); toast('Cua del locutor barrejada'); };
+
+/* ===== Events UI ===== */
+$('#btnGenerate').onclick = generate;
+$('#cols') && ($('#cols').onchange = ()=> generate());
+
+$('#btnShuffle').onclick = () => {
+  if (state.entries.length) {
+    const r = rand(hash32(state.seed + '-shuffle-' + Math.random()));
+    const sh = seededShuffle(state.entries, r);
+    state.entries = sh;
+    buildGrid(sh);
+    setStatus('Barrejat');
+  } else {
+    generate();
+  }
+};
+
+$('#btnRandomSeed').onclick = () => {
+  $('#seed').value = Math.random().toString(36).slice(2, 10);
+  toast('Nova llavor');
+};
+
+$('#btnDownloadPDF').onclick = () => downloadPDF();
+
+$('#btnClear').onclick = () => {
+  state.marks.clear();
+  $$('.cell').forEach(c => c.classList.remove('mark'));
+  updateCounts();
+};
+
+$('#btnLine').onclick = () => celebrate('Línia!', 'Mostra el cartró al moderador');
+$('#btnBingo').onclick = () => celebrate('Bingo!', 'Mostra el cartró al moderador');
+
+$('#btnQR').onclick = () => {
+  const u = location.href;
+  const w = window.open('about:blank', '_blank');
+  if (!w) { alert('Permet emergents'); return; }
+  const html = `<!doctype html><meta charset="utf-8"><title>QR</title><body style="display:grid;place-items:center;height:100vh;margin:0;background:#0b0d12"><canvas id="q"></canvas><p style="color:#e9ecf3;font-family:sans-serif;opacity:.8">Escaneja el codi</p><script>(function(){var url=decodeURIComponent(location.hash.slice(1));var c=document.getElementById('q');if(opener&&opener.QRCode){opener.QRCode.toCanvas(c,url,{width:300,color:{dark:'#ffffff',light:'#0b0d12'}},function(){})}else{c.outerHTML='<p style=\\'color:#e9ecf3;font-family:sans-serif;opacity:.8\\'>URL: '+url+'</p>'}})();<\/script>`;
+  w.location.href = 'data:text/html;charset=utf-8,' + encodeURIComponent(html) + '#' + encodeURIComponent(u);
+};
+
+$('#btnCopyLink').onclick = () => {
+  state.pin = pinInput.value.trim();
+  updatePIN();
+  const u = new URL(location.href);
+  if (state.pin) u.searchParams.set('pin', state.pin); else u.searchParams.delete('pin');
+  navigator.clipboard.writeText(u.toString()).then(() => toast('Enllaç copiat'));
+};
+
+pinInput.addEventListener('input', () => { state.pin = pinInput.value.trim(); updatePIN(); });
+$('#preventDupes').onchange = e => { state.preventDupes = e.target.checked; generate(); };
+
+if ($('#btnLoadPlaylist')) $('#btnLoadPlaylist').onclick = loadPlaylist;
+
+if (playlistProvider) {
+  const updatePH = () => { providerKey.placeholder = playlistProvider.value === 'spotify' ? 'Token OAuth (opcional)' : 'API Key / Token'; };
+  playlistProvider.addEventListener('change', updatePH);
+  updatePH();
+}
+if (csvBtn && csvInput) {
+  csvBtn.addEventListener('click', () => csvInput.click());
+  csvInput.addEventListener('change', () => { const f = csvInput.files && csvInput.files[0]; if (f) importCSV(f); });
+}
+if (xlsxBtn && xlsxInput) {
+  xlsxBtn.addEventListener('click', () => xlsxInput.click());
+  xlsxInput.addEventListener('change', () => { const f = xlsxInput.files && xlsxInput.files[0]; if (f) importXLSX(f); });
+}
+
+/* Botó LOCUTOR: mostrar/amagar panell i preparar cua */
+const locutorPane = $('#locutor');
+$('#btnLocutor').onclick = () => {
+  const show = locutorPane.style.display === 'none' || locutorPane.style.display === '';
+  locutorPane.style.display = show ? 'block' : 'none';
+  if (show) {
+    if (!state.locQueue.length) {
+      state.locRandomSeed = state.locRandomSeed || Date.now().toString(36);
+      buildLocutorQueueFromPlaylistRandom();
+    }
+    setStatus('Mode locutor obert');
+    $('#locPlay')?.focus();
+  } else {
+    setStatus('Mode locutor tancat');
+  }
+};
+
+/* Tecles ràpides globals (cartró / locutor) */
+document.addEventListener('keydown', e => {
+  if (e.target.closest('input,textarea')) return;
+  if (locutorPane.style.display !== 'none') {
+    if (e.key === 'ArrowLeft') { e.preventDefault(); locPrev(); }
+    else if (e.key === 'ArrowRight') { e.preventDefault(); locNext(true); }
+    else if (e.code === 'Space' || e.key === ' ' || e.key === 'Spacebar') {
+        e.preventDefault();
+        isPlaying ? locPause() : locPlay();
+    }
+    return;
+  }
+  if (e.key.toLowerCase() === 'l') $('#btnLine').click();
+  if (e.key.toLowerCase() === 'b') $('#btnBingo').click();
+  if (e.key.toLowerCase() === 'r') $('#btnShuffle').click();
+  if (e.key === ' ') { const f = $('.cell'); if (f) f.click(); }
+});
+
+/* Spotify: botó connectar */
+$('#btnSpotifyConnect').onclick=async ()=>{
+  const t = await spotifyGetValidToken();
+  if(t){ toast('Ja estàs connectat a Spotify'); return; }
+  spotifyLogin();
+};
+
+/* ===== Init ===== */
+(async function init(){
+  state.pin = pinInput.value.trim(); // PIN de la query al state
+  updatePIN();                 // PIN inicial
+  await spotifyHandleRedirect().catch(()=>{}); // torna del login
+  if(!source.value) source.value=DEMO;
+  // llegeix valor inicial de columnes (UI)
+  state.cols = parseInt(document.querySelector('#cols')?.value||'5',10) || 5;
+  generate();
+  // Lucide: pinta icones un cop el DOM està llest
+  try{
+    if(window.lucide && typeof lucide.createIcons==='function'){
+      lucide.createIcons();
+    }
+  }catch(e){}
+})();
+</script>
+</body>
+</html>

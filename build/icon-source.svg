@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <!-- Yellow background with rounded corners (macOS style) -->
+  <rect width="1024" height="1024" rx="224" ry="224" fill="#ffe234"/>
+
+  <!-- Musical notes: double eighth note (♫) drawn as paths, dark ink -->
+  <!-- Note stem right -->
+  <rect x="580" y="280" width="52" height="340" rx="26" fill="#0d0d0d"/>
+  <!-- Note stem left -->
+  <rect x="392" y="330" width="52" height="290" rx="26" fill="#0d0d0d"/>
+  <!-- Beam connecting stems -->
+  <rect x="392" y="280" width="240" height="62" rx="28" fill="#0d0d0d"/>
+  <!-- Note head right -->
+  <ellipse cx="580" cy="638" rx="80" ry="56" fill="#0d0d0d" transform="rotate(-15 580 638)"/>
+  <!-- Note head left -->
+  <ellipse cx="392" cy="630" rx="80" ry="56" fill="#0d0d0d" transform="rotate(-15 392 630)"/>
+
+  <!-- Small accent dot on top-right for musical flair -->
+  <circle cx="650" cy="265" r="28" fill="#0d0d0d"/>
+</svg>

@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="ca">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#faf9f6" />
+  <title>QUINAPP</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+
+  <a class="skip-link" href="#main">Salta al contingut</a>
+
+  <header class="app-header">
+    <div class="header-inner">
+      <h1 class="logo">
+        <span class="logo-icon" aria-hidden="true">♫</span>
+        <span class="logo-text">QUINAPP</span>
+      </h1>
+      <nav class="tabs" aria-label="Seccions">
+        <button class="tab-btn active" data-tab="session">SESSIÓ</button>
+        <button class="tab-btn" data-tab="locutor">LOCUTOR</button>
+        <button class="tab-btn" data-tab="game">JOC</button>
+        <button class="tab-btn" data-tab="mobile">MÒBIL</button>
+      </nav>
+      <div id="liveIndicator" class="live-badge live-off" role="status" aria-live="polite">○ OFF</div>
+      <div id="serverIndicator" class="server-badge server-off" role="status" aria-live="polite">SERVER KO</div>
+    </div>
+  </header>
+
+  <main class="layout" id="main">
+
+    <!-- ── Tab 1: SESIÓN ── -->
+    <section id="tab-session" class="tab-panel two-col">
+
+      <div class="panel">
+        <h2>Configurar sessió</h2>
+
+        <label for="pin">PIN sessió</label>
+        <input id="pin" inputmode="numeric" autocomplete="off" placeholder="4821" value="4821" />
+
+        <label for="seed">Seed lot</label>
+        <input id="seed" placeholder="auto" />
+
+        <div class="row-2">
+          <div>
+            <label for="rows">Files</label>
+            <input id="rows" type="number" min="1" max="6" value="3" />
+          </div>
+          <div>
+            <label for="cols">Columnes</label>
+            <input id="cols" type="number" min="3" max="8" value="5" />
+          </div>
+        </div>
+
+        <label for="songs">Cançons (Artista — Títol)</label>
+        <textarea id="songs" spellcheck="false"></textarea>
+        <details>
+          <summary class="hint" style="cursor:pointer">Regles de normalització i deduplicat</summary>
+          <div id="songRules" class="hint" style="margin-top:8px">
+            Comparació per artista+títol normalitzats (minúscules, sense accents, trim).
+          </div>
+        </details>
+        <div id="importReport" class="hint"></div>
+
+        <div class="btn-row">
+          <button id="importCsv" class="btn btn-ghost">Importar CSV</button>
+          <button id="importXlsx" class="btn btn-ghost">Importar XLSX</button>
+        </div>
+        <input id="csvFile" type="file" accept=".csv,text/csv" hidden />
+        <input id="xlsxFile" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden />
+
+        <hr class="divider" />
+        <label for="playlistUrl">URL de llista de reproducció (YouTube/Spotify)</label>
+        <input id="playlistUrl" placeholder="https://..." />
+        <div class="row-2">
+          <div>
+            <label for="playlistProvider">Proveïdor</label>
+            <select id="playlistProvider">
+              <option value="auto">Auto</option>
+              <option value="youtube">YouTube</option>
+              <option value="spotify">Spotify</option>
+            </select>
+          </div>
+          <div>
+            <label for="playlistCredential">Clau API / Token</label>
+            <input id="playlistCredential" placeholder="Clau API YouTube o token Spotify" />
+          </div>
+        </div>
+        <label for="spotifyClientId">ID de client Spotify (PKCE)</label>
+        <input id="spotifyClientId" placeholder="El teu ID de client d'app Spotify" />
+        <div class="btn-row">
+          <button id="spotifyConnect" class="btn btn-ghost">Connectar sessió Spotify</button>
+          <button id="spotifyDisconnect" class="btn btn-ghost">Desconnectar</button>
+        </div>
+        <p id="spotifyStatus" class="hint">Spotify: no connectat</p>
+        <button id="importPlaylist" class="btn btn-ghost full">Importar llista de reproducció</button>
+        <button id="reviewSongs" class="btn btn-ghost full">Revisar duplicats/conflictes</button>
+      </div>
+
+      <div class="panel">
+        <h2>Accions</h2>
+        <p class="hint">Crea una sessió nova amb el PIN i la llista de cançons, o carrega una ja existent per PIN.</p>
+
+        <button id="createSession" class="btn btn-primary full">Crear sessió</button>
+        <button id="loadSession" class="btn btn-ghost full">Carregar sessió existent</button>
+        <label for="adminPin">PIN admin (accions crítiques)</label>
+        <input id="adminPin" type="password" inputmode="numeric" autocomplete="off" placeholder="PIN admin sessió" />
+        <div class="btn-row">
+          <button id="resetRound" class="btn btn-ghost">Nova tanda</button>
+          <button id="deleteSessionBtn" class="btn btn-ghost">Esborrar sessió</button>
+        </div>
+        <hr class="divider" />
+        <h2 style="margin-top:2px">Connexió iPhone</h2>
+        <p class="hint">La URL, el QR i la prova de connexió del mòbil són a la pestanya Mòbil.</p>
+        <button id="goToMobileTab" class="btn btn-ghost full">Obrir connexió mòbil →</button>
+
+        <hr class="divider" />
+
+        <label for="cardsCount">Cartons a generar</label>
+        <input id="cardsCount" type="number" min="1" max="200" value="2" />
+        <button id="createCards" class="btn btn-accent full">Generar cartons →</button>
+
+        <hr class="divider" />
+
+        <h2>Cartons generats</h2>
+        <div id="cardsList" class="cards-list"></div>
+      </div>
+
+    </section>
+
+    <!-- ── Tab 2: LOCUTOR ── -->
+    <section id="tab-locutor" class="tab-panel two-col hidden">
+
+      <div class="panel">
+        <h2>Controls</h2>
+
+        <button id="connectLive" class="btn btn-ghost full">Connectar en temps real</button>
+        <div class="btn-row">
+          <button id="undoDraw" class="btn btn-ghost">↶ Desfer</button>
+          <button id="locutorFullscreen" class="btn btn-ghost">Pantalla completa</button>
+        </div>
+        <div class="btn-row">
+          <button id="eventModeToggle" class="btn btn-accent">Mode esdeveniment</button>
+          <button id="drawSkip" class="btn btn-ghost">Saltar</button>
+        </div>
+        <p id="eventShortcuts" class="hint">
+          Dreceres: <kbd>Espai</kbd> següent · <kbd>S</kbd> saltar · <kbd>R</kbd> repetir · <kbd>B</kbd> bloquejar · <kbd>U</kbd> desfer · <kbd>F</kbd> pantalla completa
+        </p>
+
+        <div class="now-hero" role="status" aria-live="polite">
+          <div class="now-label">SONANT ARA</div>
+          <div id="nowArtist" class="now-artist">—</div>
+          <div id="nowTitle" class="now-title">Esperant primera cançó</div>
+          <div id="eventBigCounter" class="event-big-counter">0 / —</div>
+        </div>
+
+        <div class="drawn-progress">
+          <span id="drawnCount">0</span> / <span id="totalSongs">—</span> cançons treballades
+        </div>
+
+        <div class="spotify-player-wrap">
+          <div class="spotify-player-head">
+            <span class="spotify-player-title">Reproductor Spotify</span>
+            <label class="spotify-autoplay">
+              <input id="spotifyAutoplay" type="checkbox" checked />
+              Reproducció automàtica
+            </label>
+          </div>
+          <p id="spotifyPlayerStatus" class="hint">Importa llista de reproducció de Spotify per reproduir cançons reals.</p>
+          <p id="spotifySdkStatus" class="hint">SDK: no inicialitzat</p>
+          <iframe
+            id="spotifyEmbed"
+            title="Spotify Player"
+            class="spotify-embed"
+            src="about:blank"
+            allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+            loading="lazy"
+          ></iframe>
+          <div class="spotify-controls">
+            <button id="spotifyPrev" class="btn btn-ghost" aria-label="Cançó anterior">⏮</button>
+            <button id="spotifyToggle" class="btn btn-ghost" aria-label="Reproduir o pausar">⏯</button>
+            <button id="spotifyNext" class="btn btn-ghost" aria-label="Cançó següent">⏭</button>
+            <label class="spotify-seek">
+              Cercar
+              <input id="spotifySeek" type="range" min="0" max="1000" value="0" />
+            </label>
+            <label class="spotify-volume">
+              Vol
+              <input id="spotifyVolume" type="range" min="0" max="100" value="80" />
+            </label>
+          </div>
+          <div class="btn-row">
+            <button id="spotifyPlayCurrent" class="btn btn-ghost">Reproduir actual</button>
+            <button id="drawRepeat" class="btn btn-ghost">Repetir</button>
+          </div>
+          <div class="btn-row">
+            <button id="drawBlock" class="btn btn-ghost">Bloquejar cançó</button>
+            <button id="spotifyOpenCurrent" class="btn btn-ghost">Obrir Spotify</button>
+          </div>
+        </div>
+
+        <div class="queue-wrap">
+          <div class="queue-title">Cua intel·ligent</div>
+          <div id="queueCurrent" class="queue-item">Actual: —</div>
+          <div id="queueNext" class="queue-item">Següent: —</div>
+          <div id="queueBlockedInfo" class="hint">Bloquejades: 0</div>
+        </div>
+
+        <button id="drawNext" class="btn btn-primary full big-btn">▶ Següent cançó</button>
+        <div class="btn-row">
+          <button id="exportLogJson" class="btn btn-ghost">Registre JSON</button>
+          <button id="exportLogCsv" class="btn btn-ghost">Registre CSV</button>
+        </div>
+      </div>
+
+      <div class="panel history-panel">
+        <h2>Historial</h2>
+        <ol id="drawnHistory" class="drawn-list">
+          <li class="drawn-empty">Encara no s'han tret cançons.</li>
+        </ol>
+      </div>
+
+    </section>
+
+    <!-- ── Tab 3: JUEGO ── -->
+    <section id="tab-game" class="tab-panel game-layout hidden">
+
+      <div class="game-top">
+        <div class="now-strip" role="status" aria-live="polite">
+          <span class="now-strip-icon" aria-hidden="true">♫</span>
+          <span id="gameNowArtist" class="now-strip-artist">—</span>
+          <span class="now-strip-sep">·</span>
+          <span id="gameNowTitle" class="now-strip-title">Esperant...</span>
+        </div>
+        <div class="card-nav">
+          <button id="prevCard" class="btn btn-ghost nav-btn" aria-label="Cartó anterior">←</button>
+          <p id="cardMeta" class="card-meta">Sense cartó</p>
+          <button id="nextCard" class="btn btn-ghost nav-btn" aria-label="Cartó següent">→</button>
+        </div>
+      </div>
+
+      <div id="grid" class="grid"></div>
+
+      <div class="game-actions">
+        <button id="claimLine" class="btn btn-accent">Reclamar línia</button>
+        <button id="claimBingo" class="btn btn-primary">¡BINGO!</button>
+        <button id="downloadCurrentPdf" class="btn btn-ghost">PDF cartó</button>
+        <button id="showCardQr" class="btn btn-ghost">QR cartó</button>
+      </div>
+
+      <div class="panel">
+        <h2>PDF Pro</h2>
+        <div class="row-2">
+          <div>
+            <label for="pdfFormat">Format</label>
+            <select id="pdfFormat">
+              <option value="a4-2up">A4 · 2 per pàgina</option>
+              <option value="a5">A5 · 1 per pàgina</option>
+            </select>
+          </div>
+          <div>
+            <label for="pdfScope">Àmbit</label>
+            <select id="pdfScope">
+              <option value="all">Tots els cartons</option>
+              <option value="current">Només cartó actiu</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label for="pdfPreset">Predefinit</label>
+          <select id="pdfPreset">
+            <option value="evento">Esdeveniment</option>
+            <option value="imprenta">Impremta</option>
+            <option value="ahorro">Estalvi tinta</option>
+          </select>
+        </div>
+        <div class="row-2 checks">
+          <label><input id="pdfShowMeta" type="checkbox" checked /> Mostrar meta</label>
+          <label><input id="pdfHighContrast" type="checkbox" /> Alt contrast</label>
+        </div>
+        <button id="previewPdf" class="btn btn-ghost full">Previsualitzar cartó actual</button>
+        <div id="pdfPreviewWrap" class="pdf-preview-wrap hidden">
+          <iframe id="pdfPreviewFrame" title="Preview PDF"></iframe>
+        </div>
+        <button id="downloadPdf" class="btn btn-primary full">Descarregar PDF Pro</button>
+      </div>
+
+    </section>
+
+    <!-- ── Tab 4: MÓVIL ── -->
+    <section id="tab-mobile" class="tab-panel two-col hidden">
+      <div class="panel">
+        <h2>Connectar mòbil</h2>
+        <p class="hint">Obre aquesta URL a l'iPhone (mateixa xarxa Wi-Fi) per validar QR en temps real.</p>
+        <input id="phoneUrlBig" readonly class="phone-url-big" />
+        <div class="btn-row">
+          <button id="refreshMobileInfo" class="btn btn-ghost">Actualitzar</button>
+          <button id="shareMobileUrl" class="btn btn-accent">Compartir</button>
+          <button id="copyMobileUrl" class="btn btn-primary">Copiar URL</button>
+        </div>
+        <button id="testMobileConnection" class="btn btn-ghost full">Prova connexió</button>
+        <p id="networkHint" class="hint">—</p>
+      </div>
+      <div class="panel">
+        <h2>QR connexió</h2>
+        <p class="hint">Escaneja aquest QR amb l'iPhone per obrir directament l'app.</p>
+        <div class="qr-wrap">
+          <img id="mobileConnectQr" alt="QR connexió mòbil" width="320" height="320" />
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <div id="toastContainer" class="toast-container"></div>
+
+  <script type="module" src="./main.js"></script>
+</body>
+</html>
