@@ -501,6 +501,7 @@ function updateSpotifyStatus() {
 
 function setSpotifySdkStatus(text) {
   if (els.spotifySdkStatus) els.spotifySdkStatus.textContent = `SDK: ${text}`;
+  if (window.updateWizSdk) window.updateWizSdk(text);
 }
 
 async function loadSpotifySdk() {
@@ -562,7 +563,7 @@ async function ensureSpotifyPlayer() {
     spotifyPlayback.player.addListener('ready', ({ device_id }) => {
       spotifyPlayback.deviceId = device_id;
       spotifyPlayback.ready = true;
-      setSpotifySdkStatus('listo');
+      setSpotifySdkStatus('a punt');
     });
     spotifyPlayback.player.addListener('not_ready', () => {
       spotifyPlayback.ready = false;
@@ -578,7 +579,7 @@ async function ensureSpotifyPlayer() {
     });
     spotifyPlayback.player.addListener('initialization_error', ({ message }) => setSpotifySdkStatus(`error init (${message})`));
     spotifyPlayback.player.addListener('authentication_error', ({ message }) => setSpotifySdkStatus(`error auth (${message})`));
-    spotifyPlayback.player.addListener('account_error', ({ message }) => setSpotifySdkStatus(`error cuenta (${message})`));
+    spotifyPlayback.player.addListener('account_error', ({ message }) => setSpotifySdkStatus(`cal Spotify Premium (${message})`));
 
     const ok = await spotifyPlayback.player.connect();
     if (!ok) throw new Error('No es pot connectar el SDK de Spotify');
@@ -2190,6 +2191,8 @@ document.addEventListener('keydown', (event) => {
     updateWizNow(state.currentSong, state.drawnSongs.length);
     if (window.updateWizQueue) window.updateWizQueue(state.nextSong);
     refreshNextInQueue();
+    // Pre-connecta el reproductor (gest d'usuari) perquè el 1r sorteig ja soni.
+    if (spotifyConnected()) ensureSpotifyPlayer().catch(() => {});
   });
 
   // Pas 5 — jugar
@@ -2264,6 +2267,19 @@ document.addEventListener('keydown', (event) => {
   // Mirall de la cua (cridat des d'updateQueueUi)
   window.updateWizQueue = function (next) {
     if (W.nextSong) W.nextSong.textContent = next ? `${next.artist} — ${next.title}` : '—';
+  };
+
+  // Estat del reproductor Spotify al pas 5 (cridat des de setSpotifySdkStatus)
+  window.updateWizSdk = function (text) {
+    if (!W.spotifyHint) return;
+    const t = String(text || '');
+    if (/premium/i.test(t)) {
+      W.spotifyHint.textContent = '⚠️ Reproducció dins l\'app: cal Spotify Premium. Sense Premium, usa «Obrir Spotify» a la consola.';
+    } else if (/a punt|listo/i.test(t)) {
+      W.spotifyHint.textContent = '🔊 Reproductor Spotify a punt.';
+    } else if (/error|no disponible|fallback/i.test(t)) {
+      W.spotifyHint.textContent = `Reproductor: ${t}`;
+    }
   };
 
   // Resume després del redirect PKCE de Spotify (cridat des de l'init async)
