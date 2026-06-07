@@ -332,7 +332,7 @@ textarea {
 .btn:hover   { filter: brightness(0.96); }
 .btn:active  { transform: translate(3px, 3px); box-shadow: none; }
 
-.btn-primary { background: var(--brand); color: #fff; }
+.btn-primary { background: #1db954; color: #fff; }
 .btn-accent  { background: var(--accent); color: var(--ink); }
 .btn-ghost   { background: var(--panel); color: var(--ink); }
 
