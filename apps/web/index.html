@@ -28,8 +28,96 @@
       </nav>
       <div id="liveIndicator" class="live-badge live-off" role="status" aria-live="polite">○ OFF</div>
       <div id="serverIndicator" class="server-badge server-off" role="status" aria-live="polite">SERVER KO</div>
+      <button id="modeToggle" class="mode-toggle" title="Canviar entre assistent i mode avançat">Mode avançat</button>
     </div>
   </header>
+
+  <!-- ── Assistent guiat (vista base) ───────────────────────────────────────── -->
+  <section id="wizard" class="wizard" aria-label="Assistent de creació de quina">
+    <ol class="wiz-steps" aria-hidden="true">
+      <li class="wiz-step-dot active" data-step="1"><span>1</span> Spotify</li>
+      <li class="wiz-step-dot" data-step="2"><span>2</span> Playlist</li>
+      <li class="wiz-step-dot" data-step="3"><span>3</span> Cançons</li>
+      <li class="wiz-step-dot" data-step="4"><span>4</span> Cartons</li>
+      <li class="wiz-step-dot" data-step="5"><span>5</span> Jugar</li>
+    </ol>
+
+    <!-- Pas 1 -->
+    <div class="wiz-panel" data-wiz="1">
+      <h2>Connecta amb Spotify</h2>
+      <p class="hint">Entra amb el teu compte de Spotify per importar una llista de reproducció.</p>
+      <p id="wizSpotifyStatus" class="wiz-status">No connectat</p>
+      <button id="wizSpotifyConnect" class="btn btn-primary big-btn full">Connectar amb Spotify</button>
+      <details id="wizClientIdWrap" class="wiz-adv" hidden>
+        <summary>No tens Spotify configurat?</summary>
+        <label for="wizClientId">Client ID de la teva app Spotify</label>
+        <input id="wizClientId" placeholder="El teu Spotify Client ID" />
+      </details>
+      <div class="wiz-nav">
+        <button id="wizSkipSpotify" class="btn btn-ghost">Ho faré manualment →</button>
+        <button id="wizNext1" class="btn btn-accent" disabled>Continuar →</button>
+      </div>
+    </div>
+
+    <!-- Pas 2 -->
+    <div class="wiz-panel" data-wiz="2" hidden>
+      <h2>Enganxa la llista de reproducció</h2>
+      <p class="hint">Copia l'enllaç d'una playlist de Spotify (o YouTube).</p>
+      <label for="wizPlaylistUrl">URL de la playlist</label>
+      <input id="wizPlaylistUrl" placeholder="https://open.spotify.com/playlist/..." />
+      <button id="wizImport" class="btn btn-primary full">Importar cançons</button>
+      <p id="wizImportStatus" class="hint"></p>
+      <div class="wiz-nav">
+        <button class="btn btn-ghost" data-wiz-back="1">← Enrere</button>
+        <button id="wizNext2" class="btn btn-accent" disabled>Continuar →</button>
+      </div>
+    </div>
+
+    <!-- Pas 3 -->
+    <div class="wiz-panel" data-wiz="3" hidden>
+      <h2>Revisa i edita les cançons</h2>
+      <p class="hint">Esborra el que no vulguis o edita títol/artista. <span id="wizSongCount" class="wiz-count">0</span></p>
+      <div id="wizSongList" class="wiz-song-list"></div>
+      <button id="wizAddSong" class="btn btn-ghost">+ Afegir cançó</button>
+      <div class="wiz-nav">
+        <button class="btn btn-ghost" data-wiz-back="2">← Enrere</button>
+        <button id="wizNext3" class="btn btn-accent">Continuar →</button>
+      </div>
+    </div>
+
+    <!-- Pas 4 -->
+    <div class="wiz-panel" data-wiz="4" hidden>
+      <h2>Genera els cartons</h2>
+      <label for="wizCount">Quants cartons vols?</label>
+      <input id="wizCount" type="number" min="1" max="200" value="20" />
+      <button id="wizGenerate" class="btn btn-primary big-btn full">Generar cartons i PDF</button>
+      <div id="wizGenResult" class="wiz-result" hidden>
+        <p class="wiz-pin">PIN de la partida: <strong id="wizPin">—</strong></p>
+        <p class="hint">Comparteix aquest PIN o el QR (pestanya Mòbil) amb els jugadors.</p>
+        <button id="wizDownloadPdf" class="btn btn-ghost full">Tornar a descarregar el PDF</button>
+      </div>
+      <div class="wiz-nav">
+        <button class="btn btn-ghost" data-wiz-back="3">← Enrere</button>
+        <button id="wizNext4" class="btn btn-accent" disabled>Anar a jugar →</button>
+      </div>
+    </div>
+
+    <!-- Pas 5 -->
+    <div class="wiz-panel" data-wiz="5" hidden>
+      <h2>A jugar!</h2>
+      <div class="now-hero" role="status" aria-live="polite">
+        <div class="now-label">SONANT ARA</div>
+        <div id="wizNowArtist" class="now-artist">—</div>
+        <div id="wizNowTitle" class="now-title">Prem «Següent cançó»</div>
+        <div id="wizCounter" class="event-big-counter">0 / —</div>
+      </div>
+      <button id="wizDrawNext" class="btn btn-primary big-btn full">▶ Següent cançó</button>
+      <div class="wiz-nav">
+        <button id="wizOpenConsole" class="btn btn-ghost">Obrir consola completa (locutor)</button>
+        <button id="wizRestart" class="btn btn-ghost">↺ Nova quina</button>
+      </div>
+    </div>
+  </section>
 
   <main class="layout" id="main">
 

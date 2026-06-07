@@ -134,15 +134,28 @@ local; els més rellevants:
 | `QUINAPP_DATA_DIR` | Directori de dades | `./data` (o `userData` a Electron) |
 | `NODE_ENV` | `production` exigeix `QR_HMAC_SECRET` | — |
 
-## Ús (flux operatiu)
+## Ús
 
-1. **Sessió** — posa un PIN, enganxa o importa les cançons, defineix files×columnes i
-   (opcional) un *PIN admin* per a accions crítiques. Prem **Crear sessió**.
-2. **Cartons** — indica quants i prem **Generar cartons →**. Descarrega'ls en **PDF Pro**.
-3. **Locutor** — **Connectar en temps real** i **▶ Següent cançó**. Dreceres de teclat:
-   `Espai` següent · `S` saltar · `R` repetir · `B` bloquejar · `U` desfer · `F` pantalla completa.
-4. **Mòbil** — comparteix la URL/QR perquè els jugadors obrin el seu cartó o validin QR
-   (mateixa Wi-Fi).
+### Assistent guiat (vista per defecte) — 5 passos
+
+La primera pantalla és un **assistent** pensat per a qualsevol usuari:
+
+1. **Spotify** — connecta amb el teu compte (o «Ho faré manualment»).
+2. **Playlist** — enganxa l'enllaç d'una llista de reproducció i importa les cançons.
+3. **Cançons** — revisa, edita o esborra (mínim 15 per a cartons de 3×5).
+4. **Cartons** — tria quants i prem **Generar cartons i PDF** (s'assigna un PIN automàtic).
+5. **Jugar** — **▶ Següent cançó** i a sortejar.
+
+> 🎧 Per al login de Spotify cal una *app* de Spotify (Client ID) i registrar el *Redirect
+> URI* `http://127.0.0.1:3000/`. Passa el Client ID amb `SPOTIFY_CLIENT_ID=… npm start`.
+> Sense Spotify, fes servir «Ho faré manualment» i escriu/importa les cançons.
+
+### Mode avançat
+
+El botó **Mode avançat** (capçalera) mostra la consola completa per a operadors, amb
+4 pestanyes: **Sessió · Locutor · Joc · Mòbil** (seed, PIN admin, importadors CSV/XLSX,
+PDF Pro detallat, dreceres de teclat al locutor: `Espai` següent · `S` saltar · `R`
+repetir · `B` bloquejar · `U` desfer · `F` pantalla completa).
 
 ## API
 

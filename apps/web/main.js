@@ -1062,6 +1062,7 @@ function applyDrawSong(song, drawnCount) {
     if (els.drawNext) { els.drawNext.disabled = true; els.drawNext.textContent = '✓ Playlist finalitzada'; }
     updateQueueUi(null, null);
     showToast('Totes les cançons han sonat!', 'success');
+    if (window.updateWizNow) window.updateWizNow(null, drawnCount);
     return;
   }
   const key = `${song.artist}::${song.title}`;
@@ -1075,6 +1076,7 @@ function applyDrawSong(song, drawnCount) {
   syncMarksFromDrawn();
   renderCard(activeCard());
   refreshNextInQueue();
+  if (window.updateWizNow) window.updateWizNow(song, drawnCount);
 }
 
 // ── SSE connection ────────────────────────────────────────────────────────────
@@ -1868,6 +1870,7 @@ updateSpotifyPlayer(null);
     await refreshPhoneConnectionUrl();
     await hydrateSpotifyClientIdFromServer();
     await spotifyHandleRedirect();
+    if (window.__wizResume) window.__wizResume();
     // Optional deep-link: ?load=PIN opens the app already on that session.
     const loadPin = new URLSearchParams(location.search).get('load');
     if (loadPin) {
@@ -1921,3 +1924,226 @@ document.addEventListener('keydown', (event) => {
     els.locutorFullscreen?.click();
   }
 });
+
+// ── Assistent guiat (vista base, 5 passos) ────────────────────────────────────
+(function initWizard() {
+  const W = {
+    section: document.getElementById('wizard'),
+    dots: Array.from(document.querySelectorAll('.wiz-step-dot')),
+    panels: Array.from(document.querySelectorAll('.wiz-panel')),
+    modeToggle: document.getElementById('modeToggle'),
+    spotConnect: document.getElementById('wizSpotifyConnect'),
+    spotStatus: document.getElementById('wizSpotifyStatus'),
+    clientIdWrap: document.getElementById('wizClientIdWrap'),
+    clientId: document.getElementById('wizClientId'),
+    skipSpotify: document.getElementById('wizSkipSpotify'),
+    next1: document.getElementById('wizNext1'),
+    playlistUrl: document.getElementById('wizPlaylistUrl'),
+    importBtn: document.getElementById('wizImport'),
+    importStatus: document.getElementById('wizImportStatus'),
+    next2: document.getElementById('wizNext2'),
+    songList: document.getElementById('wizSongList'),
+    songCount: document.getElementById('wizSongCount'),
+    addSong: document.getElementById('wizAddSong'),
+    next3: document.getElementById('wizNext3'),
+    count: document.getElementById('wizCount'),
+    generate: document.getElementById('wizGenerate'),
+    genResult: document.getElementById('wizGenResult'),
+    pinOut: document.getElementById('wizPin'),
+    downloadPdf: document.getElementById('wizDownloadPdf'),
+    next4: document.getElementById('wizNext4'),
+    drawNext: document.getElementById('wizDrawNext'),
+    nowArtist: document.getElementById('wizNowArtist'),
+    nowTitle: document.getElementById('wizNowTitle'),
+    counter: document.getElementById('wizCounter'),
+    openConsole: document.getElementById('wizOpenConsole'),
+    restart: document.getElementById('wizRestart'),
+  };
+  if (!W.section) return;
+
+  const MODE_KEY = 'qm_mode';
+  const RESUME_KEY = 'qm_wiz_resume';
+  const MIN_SONGS = 15; // 3×5 per defecte
+  const wstate = { songs: [], pin: null };
+
+  function setMode(advanced) {
+    document.body.classList.toggle('advanced', advanced);
+    lsSet(MODE_KEY, advanced ? 'advanced' : 'wizard');
+    if (W.modeToggle) W.modeToggle.textContent = advanced ? 'Assistent' : 'Mode avançat';
+  }
+  W.modeToggle?.addEventListener('click', () => setMode(!document.body.classList.contains('advanced')));
+  setMode(lsGet(MODE_KEY) === 'advanced');
+
+  function showStep(n) {
+    W.panels.forEach((p) => { p.hidden = Number(p.dataset.wiz) !== n; });
+    W.dots.forEach((d) => {
+      const s = Number(d.dataset.step);
+      d.classList.toggle('active', s === n);
+      d.classList.toggle('done', s < n);
+    });
+  }
+
+  // Pas 1 — Spotify
+  function refreshSpotifyStep() {
+    const connected = spotifyConnected();
+    if (W.spotStatus) {
+      W.spotStatus.textContent = connected ? 'Connectat ✓' : 'No connectat';
+      W.spotStatus.classList.toggle('ok', connected);
+    }
+    if (W.next1) W.next1.disabled = !connected;
+    if (W.clientIdWrap) W.clientIdWrap.hidden = Boolean(currentSpotifyClientId());
+  }
+  W.spotConnect?.addEventListener('click', async () => {
+    try {
+      const cid = (W.clientId?.value || '').trim();
+      if (cid) lsSet(SPOT_KEYS.clientId, cid);
+      lsSet(RESUME_KEY, '2');
+      await spotifyStartLogin();
+    } catch (e) { showToast(e.message, 'error'); }
+  });
+  W.skipSpotify?.addEventListener('click', () => {
+    if (!wstate.songs.length) wstate.songs = [{ artist: '', title: '' }];
+    renderSongs();
+    showStep(3);
+  });
+  W.next1?.addEventListener('click', () => showStep(2));
+
+  // Pas 2 — import playlist
+  W.importBtn?.addEventListener('click', async () => {
+    try {
+      const url = (W.playlistUrl?.value || '').trim();
+      if (!url) throw new Error('Enganxa una URL de playlist');
+      const provider = detectPlaylistProvider(url);
+      let token = '';
+      if (provider === 'spotify' || provider === 'unknown') token = (await spotifyGetValidToken()) || '';
+      const parsed = await withBusy(W.importBtn, 'Important…', () => api('/api/tools/import-playlist', {
+        method: 'POST', body: { url, provider: 'auto', token },
+      }));
+      if (!parsed.songs?.length) throw new Error('Llista buida o no llegible');
+      wstate.songs = parsed.songs.map((s) => ({ artist: s.artist || '', title: s.title || '' }));
+      if (W.importStatus) W.importStatus.textContent = `${parsed.songs.length} cançons importades.`;
+      if (W.next2) W.next2.disabled = false;
+    } catch (e) { showToast(e.message, 'error'); }
+  });
+  W.next2?.addEventListener('click', () => { renderSongs(); showStep(3); });
+
+  // Pas 3 — editar
+  function validSongs() {
+    return wstate.songs.filter((s) => (s.artist || '').trim() && (s.title || '').trim());
+  }
+  function updateCount() {
+    const n = validSongs().length;
+    if (W.songCount) {
+      W.songCount.textContent = `${n} cançons (mínim ${MIN_SONGS})`;
+      W.songCount.classList.toggle('bad', n < MIN_SONGS);
+    }
+    if (W.next3) W.next3.disabled = n < MIN_SONGS;
+  }
+  function renderSongs() {
+    if (!W.songList) return;
+    W.songList.innerHTML = '';
+    wstate.songs.forEach((song, i) => {
+      const row = document.createElement('div');
+      row.className = 'wiz-song-row';
+      const a = document.createElement('input');
+      a.value = song.artist || ''; a.placeholder = 'Artista'; a.setAttribute('aria-label', 'Artista');
+      const t = document.createElement('input');
+      t.value = song.title || ''; t.placeholder = 'Títol'; t.setAttribute('aria-label', 'Títol');
+      a.addEventListener('input', () => { wstate.songs[i].artist = a.value; updateCount(); });
+      t.addEventListener('input', () => { wstate.songs[i].title = t.value; updateCount(); });
+      const del = document.createElement('button');
+      del.type = 'button'; del.textContent = '✕'; del.setAttribute('aria-label', 'Esborrar cançó');
+      del.addEventListener('click', () => { wstate.songs.splice(i, 1); renderSongs(); });
+      row.append(a, t, del);
+      W.songList.appendChild(row);
+    });
+    updateCount();
+  }
+  W.addSong?.addEventListener('click', () => {
+    wstate.songs.push({ artist: '', title: '' });
+    renderSongs();
+    W.songList.lastElementChild?.querySelector('input')?.focus();
+  });
+  W.next3?.addEventListener('click', () => showStep(4));
+
+  // Pas 4 — generar
+  function genPin() { return String(1000 + Math.floor(Math.random() * 9000)); }
+  async function downloadWizPdf() {
+    if (!wstate.pin) return;
+    const blob = await apiBinary(`/api/sessions/${encodeURIComponent(wstate.pin)}/pdf-pro`, {
+      method: 'POST', body: { format: 'a4-2up', preset: 'evento', showMeta: true, highContrast: false, cardIds: null },
+    });
+    downloadBlob(blob, `quinapp-${wstate.pin}-cartons.pdf`);
+  }
+  async function doGenerate() {
+    const songs = validSongs();
+    if (songs.length < MIN_SONGS) throw new Error(`Calen almenys ${MIN_SONGS} cançons`);
+    const pin = genPin();
+    const songsText = songs.map((s) => `${s.artist} - ${s.title}`).join('\n');
+    await api('/api/sessions', { method: 'POST', body: { pin, songsText, rows: 3, cols: 5, preventDupes: true } });
+    const count = Math.max(1, Math.min(200, Number(W.count?.value || 20)));
+    await api(`/api/sessions/${encodeURIComponent(pin)}/cards`, { method: 'POST', body: { count } });
+    wstate.pin = pin;
+    await hydrateSession(pin);
+    await downloadWizPdf();
+    if (W.pinOut) W.pinOut.textContent = pin;
+    if (W.genResult) W.genResult.hidden = false;
+    if (W.next4) W.next4.disabled = false;
+  }
+  W.generate?.addEventListener('click', async () => {
+    try { await withBusy(W.generate, 'Generant…', doGenerate); }
+    catch (e) { showToast(e.message, 'error'); }
+  });
+  W.downloadPdf?.addEventListener('click', async () => {
+    try { await withBusy(W.downloadPdf, 'Descarregant…', downloadWizPdf); }
+    catch (e) { showToast(e.message, 'error'); }
+  });
+  W.next4?.addEventListener('click', () => { showStep(5); updateWizNow(state.currentSong, state.drawnSongs.length); });
+
+  // Pas 5 — jugar
+  W.drawNext?.addEventListener('click', () => els.drawNext?.click());
+  W.openConsole?.addEventListener('click', () => { setMode(true); switchTab('locutor'); });
+  W.restart?.addEventListener('click', () => {
+    wstate.songs = []; wstate.pin = null;
+    if (W.importStatus) W.importStatus.textContent = '';
+    if (W.genResult) W.genResult.hidden = true;
+    if (W.next2) W.next2.disabled = true;
+    if (W.next4) W.next4.disabled = true;
+    if (W.playlistUrl) W.playlistUrl.value = '';
+    refreshSpotifyStep();
+    showStep(1);
+  });
+
+  document.querySelectorAll('[data-wiz-back]').forEach((b) => {
+    b.addEventListener('click', () => showStep(Number(b.dataset.wizBack)));
+  });
+
+  // Mirall del sorteig al pas 5 (cridat des d'applyDrawSong)
+  window.updateWizNow = function (song, drawn) {
+    if (!W.nowArtist) return;
+    const total = els.totalSongs?.textContent || '—';
+    if (!song) {
+      W.nowArtist.textContent = '—';
+      W.nowTitle.textContent = state.playlistDone ? '✓ Fi de la partida' : 'Prem «Següent cançó»';
+    } else {
+      W.nowArtist.textContent = song.artist;
+      W.nowTitle.textContent = song.title;
+    }
+    if (W.counter) W.counter.textContent = `${drawn ?? 0} / ${total}`;
+  };
+
+  // Resume després del redirect PKCE de Spotify (cridat des de l'init async)
+  window.__wizResume = function () {
+    const r = lsGet(RESUME_KEY);
+    if (r && spotifyConnected()) {
+      lsDel(RESUME_KEY);
+      setMode(false);
+      refreshSpotifyStep();
+      showStep(Number(r) || 2);
+    }
+  };
+
+  refreshSpotifyStep();
+  showStep(1);
+  setInterval(refreshSpotifyStep, 2500);
+})();

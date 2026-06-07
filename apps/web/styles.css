@@ -799,3 +799,150 @@ body.event-mode #eventShortcuts kbd {
 
   .game-actions .btn { padding: 12px; font-size: 13px; }
 }
+
+/* ── Mode toggle (assistent ↔ avançat) ── */
+.mode-toggle {
+  border: 2px solid #0d0d0d;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+.mode-toggle:hover { background: var(--accent); }
+
+/* Base (assistent) amaga les pestanyes avançades; avançat amaga el wizard */
+body:not(.advanced) .tabs { display: none; }
+body:not(.advanced) #main { display: none; }
+body.advanced #wizard { display: none; }
+
+/* ── Wizard ── */
+.wizard {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 28px 18px 48px;
+}
+
+.wiz-steps {
+  display: flex;
+  gap: 6px;
+  list-style: none;
+  margin: 0 0 24px;
+  padding: 0;
+  flex-wrap: wrap;
+}
+.wiz-step-dot {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .03em;
+  color: var(--muted);
+  flex: 1;
+  min-width: 0;
+}
+.wiz-step-dot span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: var(--border);
+  background: #fff;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+.wiz-step-dot.active { color: var(--ink); }
+.wiz-step-dot.active span { background: var(--accent); }
+.wiz-step-dot.done span { background: var(--live-on); color: #fff; }
+
+.wiz-panel {
+  background: var(--panel);
+  border: var(--border);
+  box-shadow: var(--shadow);
+  padding: 28px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.wiz-panel[hidden] { display: none; }
+.wiz-panel h2 { font-size: 22px; }
+.wiz-panel label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+
+.wiz-status {
+  font-weight: 700;
+  padding: 8px 12px;
+  border: 2px solid #0d0d0d;
+  background: var(--bg);
+  display: inline-block;
+  align-self: flex-start;
+}
+.wiz-status.ok { background: var(--live-on); color: #fff; }
+
+.wiz-nav {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 8px;
+}
+.wiz-nav .btn-accent { margin-left: auto; }
+
+.wiz-adv summary { cursor: pointer; font-size: 13px; color: var(--muted); }
+.wiz-adv[open] { display: flex; flex-direction: column; gap: 8px; }
+
+.wiz-count { font-weight: 800; color: var(--ink); }
+.wiz-count.bad { color: var(--brand); }
+
+.wiz-song-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 360px;
+  overflow: auto;
+  border: 2px solid #ececec;
+  padding: 8px;
+}
+.wiz-song-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 6px;
+  align-items: center;
+}
+.wiz-song-row input {
+  border: 2px solid #0d0d0d;
+  padding: 8px 10px;
+  font: inherit;
+  font-size: 14px;
+}
+.wiz-song-row button {
+  border: 2px solid #0d0d0d;
+  background: #fff;
+  font: inherit;
+  font-weight: 800;
+  width: 38px;
+  height: 38px;
+  cursor: pointer;
+  line-height: 1;
+}
+.wiz-song-row button:hover { background: var(--brand); color: #fff; }
+
+.wiz-result {
+  border: var(--border);
+  box-shadow: var(--shadow-sm);
+  padding: 16px;
+  background: var(--accent);
+}
+.wiz-pin { font-size: 18px; font-weight: 700; }
+.wiz-pin strong { font-size: 26px; font-variant-numeric: tabular-nums; }
+
+@media (max-width: 560px) {
+  .wiz-step-dot span { width: 22px; height: 22px; }
+  .wiz-step-dot { font-size: 0; gap: 0; }
+  .wiz-song-row { grid-template-columns: 1fr 1fr auto; }
+}
