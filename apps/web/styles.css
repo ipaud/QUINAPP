@@ -961,3 +961,28 @@ body.advanced #wizard { display: none; }
 .btn-spotify:hover { background: #1ed760; filter: none; }
 .btn-spotify:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 #0d0d0d; }
 .btn-spotify .spotify-ico { flex-shrink: 0; }
+
+/* ── Wizard pas 5 (jugar) ── */
+.wiz-next-box {
+  border: 2px dashed #bbb;
+  padding: 10px 12px;
+  font-weight: 700;
+  font-size: 14px;
+}
+.wiz-next-box span { color: var(--muted); font-weight: 500; }
+.wiz-history-wrap {
+  border: var(--border);
+  box-shadow: var(--shadow-sm);
+  background: #fff;
+  padding: 12px 14px;
+  max-height: 320px;
+  overflow: auto;
+}
+.wiz-history-wrap .queue-title {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 8px;
+}

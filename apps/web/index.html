@@ -118,8 +118,17 @@
         <div id="wizNowTitle" class="now-title">Prem «Següent cançó»</div>
         <div id="wizCounter" class="event-big-counter">0 / —</div>
       </div>
+      <p id="wizSpotifyHint" class="hint"></p>
+      <div class="wiz-next-box">Següent: <span id="wizNextSong">—</span></div>
       <button id="wizDrawNext" class="btn btn-spotify big-btn full">▶ Següent cançó</button>
-      <button id="wizShare" class="btn btn-accent full">Compartir connexió mòbil (QR)</button>
+      <div class="btn-row">
+        <button id="wizTogglePlay" class="btn btn-ghost">⏯ Reproduir / Pausar</button>
+        <button id="wizShare" class="btn btn-accent">Compartir QR</button>
+      </div>
+      <div class="wiz-history-wrap">
+        <div class="queue-title">Historial de cançons sonades</div>
+        <ol id="wizHistory" class="drawn-list"><li class="drawn-empty">Encara cap cançó.</li></ol>
+      </div>
       <div class="wiz-nav">
         <button id="wizOpenConsole" class="btn btn-ghost">Obrir consola completa (locutor)</button>
         <button id="wizRestart" class="btn btn-ghost">↺ Nova quina</button>

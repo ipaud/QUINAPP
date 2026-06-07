@@ -974,6 +974,7 @@ function updateQueueUi(current = null, next = null) {
   if (els.queueBlockedInfo) {
     els.queueBlockedInfo.textContent = `Bloquejades: ${state.blockedSongs.size}`;
   }
+  if (window.updateWizQueue) window.updateWizQueue(next);
 }
 
 async function warmSpotifyTrack(song) {
@@ -2000,6 +2001,10 @@ document.addEventListener('keydown', (event) => {
     nowArtist: document.getElementById('wizNowArtist'),
     nowTitle: document.getElementById('wizNowTitle'),
     counter: document.getElementById('wizCounter'),
+    nextSong: document.getElementById('wizNextSong'),
+    togglePlay: document.getElementById('wizTogglePlay'),
+    history: document.getElementById('wizHistory'),
+    spotifyHint: document.getElementById('wizSpotifyHint'),
     openConsole: document.getElementById('wizOpenConsole'),
     restart: document.getElementById('wizRestart'),
     share: document.getElementById('wizShare'),
@@ -2180,10 +2185,19 @@ document.addEventListener('keydown', (event) => {
     try { await withBusy(W.downloadPdf, 'Descarregant…', downloadWizPdf); }
     catch (e) { showToast(e.message, 'error'); }
   });
-  W.next4?.addEventListener('click', () => { showStep(5); updateWizNow(state.currentSong, state.drawnSongs.length); });
+  W.next4?.addEventListener('click', () => {
+    showStep(5);
+    updateWizNow(state.currentSong, state.drawnSongs.length);
+    if (window.updateWizQueue) window.updateWizQueue(state.nextSong);
+    refreshNextInQueue();
+  });
 
   // Pas 5 — jugar
   W.drawNext?.addEventListener('click', () => els.drawNext?.click());
+  W.togglePlay?.addEventListener('click', async () => {
+    try { await spotifyTogglePlayback(); }
+    catch (e) { showToast(e.message || 'No es pot canviar la reproducció', 'error'); }
+  });
   W.openConsole?.addEventListener('click', () => { setMode(true); switchTab('locutor'); });
   W.share?.addEventListener('click', async () => {
     try {
@@ -2209,6 +2223,25 @@ document.addEventListener('keydown', (event) => {
     b.addEventListener('click', () => showStep(Number(b.dataset.wizBack)));
   });
 
+  function renderWizHistory() {
+    if (!W.history) return;
+    const songs = state.drawnSongs || [];
+    if (!songs.length) {
+      W.history.innerHTML = '<li class="drawn-empty">Encara cap cançó.</li>';
+      return;
+    }
+    W.history.innerHTML = '';
+    songs.slice().reverse().forEach((s, idx) => {
+      const li = document.createElement('li');
+      const n = document.createElement('span'); n.className = 'd-num'; n.textContent = String(songs.length - idx);
+      const a = document.createElement('span'); a.className = 'd-artist'; a.textContent = s.artist;
+      const sep = document.createElement('span'); sep.className = 'd-sep'; sep.textContent = ' — ';
+      const t = document.createElement('span'); t.className = 'd-title'; t.textContent = s.title;
+      li.append(n, a, sep, t);
+      W.history.appendChild(li);
+    });
+  }
+
   // Mirall del sorteig al pas 5 (cridat des d'applyDrawSong)
   window.updateWizNow = function (song, drawn) {
     if (!W.nowArtist) return;
@@ -2221,6 +2254,16 @@ document.addEventListener('keydown', (event) => {
       W.nowTitle.textContent = song.title;
     }
     if (W.counter) W.counter.textContent = `${drawn ?? 0} / ${total}`;
+    if (W.spotifyHint) {
+      const noLink = song && !getSpotifyTrackId(song);
+      W.spotifyHint.textContent = noLink ? 'Aquesta cançó no té enllaç a Spotify (no es reprodueix sola).' : '';
+    }
+    renderWizHistory();
+  };
+
+  // Mirall de la cua (cridat des d'updateQueueUi)
+  window.updateWizQueue = function (next) {
+    if (W.nextSong) W.nextSong.textContent = next ? `${next.artist} — ${next.title}` : '—';
   };
 
   // Resume després del redirect PKCE de Spotify (cridat des de l'init async)
@@ -2251,7 +2294,10 @@ document.addEventListener('keydown', (event) => {
         if (W.pinOut) W.pinOut.textContent = wstate.pin;
         if (W.genResult) W.genResult.hidden = false;
         if (W.next4) W.next4.disabled = false;
-        hydrateSession(wstate.pin).catch(() => {});
+        hydrateSession(wstate.pin).then(() => {
+          updateWizNow(state.currentSong, state.drawnSongs.length);
+          if (window.updateWizQueue) window.updateWizQueue(state.nextSong);
+        }).catch(() => {});
       }
       showStep(Math.min(5, Math.max(1, Number(saved.step) || 1)));
     } else {
