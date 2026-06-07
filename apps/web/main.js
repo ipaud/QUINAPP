@@ -1,4 +1,45 @@
 const TOAST_DURATION_MS = 3200;
+
+// ── Lucide icons (inline SVG, sense CDN) ──────────────────────────────────────
+const ICONS = {
+  music: '<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>',
+  play: '<polygon points="6 3 20 12 6 21 6 3"/>',
+  pause: '<rect x="14" y="4" width="4" height="16" rx="1"/><rect x="6" y="4" width="4" height="16" rx="1"/>',
+  'skip-back': '<polygon points="19 20 9 12 19 4 19 20"/><line x1="5" x2="5" y1="19" y2="5"/>',
+  'skip-forward': '<polygon points="5 4 15 12 5 20 5 4"/><line x1="19" x2="19" y1="5" y2="19"/>',
+  'chevron-left': '<path d="m15 18-6-6 6-6"/>',
+  'chevron-right': '<path d="m9 18 6-6-6-6"/>',
+  'arrow-right': '<path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>',
+  'arrow-left': '<path d="m12 19-7-7 7-7"/><path d="M19 12H5"/>',
+  'rotate-ccw': '<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>',
+  undo: '<path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/>',
+  check: '<path d="M20 6 9 17l-5-5"/>',
+  x: '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
+  'volume-2': '<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>',
+  'alert-triangle': '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
+  'scan-line': '<path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 12h10"/>',
+  maximize: '<path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/>',
+  ban: '<circle cx="12" cy="12" r="10"/><path d="m4.9 4.9 14.2 14.2"/>',
+  repeat: '<path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/>',
+  share: '<path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" x2="12" y1="2" y2="15"/>',
+  dot: '<circle cx="12" cy="12" r="6" fill="currentColor" stroke="none"/>',
+  ticket: '<path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M13 5v2"/><path d="M13 17v2"/><path d="M13 11v2"/>',
+};
+
+function svgIcon(name, cls = '') {
+  const body = ICONS[name] || '';
+  return `<svg class="ico ${cls}" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
+}
+
+// Substitueix els placeholders <span data-icon="..."></span> per l'SVG.
+function renderIcons(root = document) {
+  root.querySelectorAll('[data-icon]').forEach((el) => {
+    if (el.dataset.iconDone) return;
+    el.innerHTML = svgIcon(el.dataset.icon, el.dataset.iconClass || '');
+    el.dataset.iconDone = '1';
+  });
+}
+
 const DEMO = `Dua Lipa - Levitating
 ABBA - Dancing Queen
 Queen - Don't Stop Me Now
@@ -271,7 +312,7 @@ function showQrModal(title, qrDataUrl, url) {
 // ── Live indicator ────────────────────────────────────────────────────────────
 
 function setLiveIndicator(connected) {
-  els.liveIndicator.textContent = connected ? '● LIVE' : '○ OFF';
+  els.liveIndicator.innerHTML = `${svgIcon('dot')} ${connected ? 'LIVE' : 'OFF'}`;
   els.liveIndicator.className = `live-badge ${connected ? 'live-on' : 'live-off'}`;
 }
 
@@ -507,7 +548,7 @@ function renderImportReport(report) {
   ].join(' · ');
   els.importReport.textContent = txt;
   if (els.songRules && Array.isArray(report.normalizationRules)) {
-    els.songRules.innerHTML = report.normalizationRules.map((r) => `• ${r}`).join('<br>');
+    els.songRules.innerHTML = report.normalizationRules.map((r) => `· ${r}`).join('<br>');
   }
 }
 
@@ -605,7 +646,7 @@ async function ensureSpotifyPlayer() {
       });
       spotifyPlayback.player.addListener('player_state_changed', (s) => {
         spotifyPlayback.paused = Boolean(s?.paused ?? true);
-        if (els.spotifyToggle) els.spotifyToggle.textContent = spotifyPlayback.paused ? '▶' : '⏸';
+        if (els.spotifyToggle) els.spotifyToggle.innerHTML = spotifyPlayback.paused ? svgIcon('play') : svgIcon('pause');
         if (els.spotifySeek && s?.duration) {
           const ratio = Math.max(0, Math.min(1, Number(s.position || 0) / Number(s.duration)));
           els.spotifySeek.value = String(Math.floor(ratio * 1000));
@@ -1194,12 +1235,12 @@ function rebuildHistory(songs) {
 function applyDrawSong(song, drawnCount) {
   if (!song) {
     state.playlistDone = true;
-    els.nowArtist.textContent = '✓ Fi de partida';
+    els.nowArtist.textContent = 'Fi de partida';
     els.nowTitle.textContent = `Totes les cançons sacades (${drawnCount})`;
-    els.gameNowArtist.textContent = '✓ Fi de partida';
+    els.gameNowArtist.textContent = 'Fi de partida';
     els.gameNowTitle.textContent = `Totes les cançons sacades (${drawnCount})`;
     if (els.eventBigCounter) els.eventBigCounter.textContent = `${drawnCount} / ${els.totalSongs.textContent || '—'}`;
-    if (els.drawNext) { els.drawNext.disabled = true; els.drawNext.textContent = '✓ Playlist finalitzada'; }
+    if (els.drawNext) { els.drawNext.disabled = true; els.drawNext.innerHTML = svgIcon('check') + ' Playlist finalitzada'; }
     updateQueueUi(null, null);
     showToast('Totes les cançons han sonat!', 'success');
     if (window.updateWizNow) window.updateWizNow(null, drawnCount);
@@ -1305,10 +1346,10 @@ async function hydrateSession(pin) {
 
   if (state.playlistDone) {
     els.drawNext.disabled = true;
-    els.drawNext.textContent = '✓ Playlist finalitzada';
+    els.drawNext.innerHTML = svgIcon('check') + ' Playlist finalitzada';
   } else {
     els.drawNext.disabled = false;
-    els.drawNext.textContent = '▶ Seguent canco';
+    els.drawNext.innerHTML = svgIcon('play') + ' Següent cançó';
   }
 
   rebuildHistory(state.drawnSongs);
@@ -1667,7 +1708,7 @@ els.createSession.addEventListener('click', async () => {
     state.marked = new Set();
     state.playlistDone = false;
     els.drawNext.disabled = false;
-    els.drawNext.textContent = '▶ Seguent canco';
+    els.drawNext.innerHTML = svgIcon('play') + ' Següent cançó';
     els.totalSongs.textContent = session.songs;
     els.drawnCount.textContent = 0;
     rebuildHistory([]);
@@ -1763,7 +1804,7 @@ els.drawNext.addEventListener('click', async () => {
     if (data.done) {
       applyDrawSong(null, data.drawn);
       els.drawNext.disabled = true;
-      els.drawNext.textContent = '✓ Playlist finalitzada';
+      els.drawNext.innerHTML = svgIcon('check') + ' Playlist finalitzada';
       return;
     }
     applyDrawSong(data.song, data.drawn);
@@ -1992,6 +2033,7 @@ els.xlsxFile.addEventListener('change', async () => {
 });
 
 // ── Init ──────────────────────────────────────────────────────────────────────
+renderIcons();
 setLiveIndicator(false);
 setServerIndicator(false);
 applyPdfPreset(els.pdfPreset?.value || 'evento');
@@ -2143,7 +2185,7 @@ document.addEventListener('keydown', (event) => {
   function refreshSpotifyStep() {
     const connected = spotifyConnected();
     if (W.spotStatus) {
-      W.spotStatus.textContent = connected ? 'Connectat ✓' : 'No connectat';
+      W.spotStatus.innerHTML = connected ? (svgIcon('check') + ' Connectat') : 'No connectat';
       W.spotStatus.classList.toggle('ok', connected);
     }
     if (W.next1) W.next1.disabled = !connected;
@@ -2370,7 +2412,7 @@ document.addEventListener('keydown', (event) => {
     const total = els.totalSongs?.textContent || '—';
     if (!song) {
       W.nowArtist.textContent = '—';
-      W.nowTitle.textContent = state.playlistDone ? '✓ Fi de la partida' : 'Prem «Següent cançó»';
+      W.nowTitle.textContent = state.playlistDone ? 'Fi de la partida' : 'Prem «Següent cançó»';
     } else {
       W.nowArtist.textContent = song.artist;
       W.nowTitle.textContent = song.title;
@@ -2378,7 +2420,7 @@ document.addEventListener('keydown', (event) => {
     if (W.counter) W.counter.textContent = `${drawn ?? 0} / ${total}`;
     if (W.drawNext) {
       W.drawNext.disabled = Boolean(state.playlistDone);
-      if (state.playlistDone) W.drawNext.textContent = '✓ Totes sonades';
+      if (state.playlistDone) W.drawNext.innerHTML = svgIcon('check') + ' Totes sonades';
     }
     if (W.spotifyHint) {
       const noLink = song && !getSpotifyTrackId(song);
@@ -2397,9 +2439,9 @@ document.addEventListener('keydown', (event) => {
     if (!W.spotifyHint) return;
     const t = String(text || '');
     if (/premium/i.test(t)) {
-      W.spotifyHint.textContent = '⚠️ Reproducció dins l\'app: cal Spotify Premium. Sense Premium, usa «Obrir Spotify» a la consola.';
+      W.spotifyHint.innerHTML = svgIcon('alert-triangle') + ' Reproducció dins l\'app: cal Spotify Premium. Sense Premium, usa «Obrir Spotify» a la consola.';
     } else if (/a punt|listo/i.test(t)) {
-      W.spotifyHint.textContent = '🔊 Reproductor Spotify a punt.';
+      W.spotifyHint.innerHTML = svgIcon('volume-2') + ' Reproductor Spotify a punt.';
     } else if (/error|no disponible|fallback/i.test(t)) {
       W.spotifyHint.textContent = `Reproductor: ${t}`;
     }

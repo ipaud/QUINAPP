@@ -17,7 +17,7 @@
   <header class="app-header">
     <div class="header-inner">
       <h1 class="logo">
-        <span class="logo-icon" aria-hidden="true">♫</span>
+        <span class="logo-icon" data-icon="music" aria-hidden="true"></span>
         <span class="logo-text">QUINAPP</span>
       </h1>
       <nav class="tabs" aria-label="Seccions">
@@ -26,7 +26,7 @@
         <button class="tab-btn" data-tab="game">JOC</button>
         <button class="tab-btn" data-tab="mobile">MÒBIL</button>
       </nav>
-      <div id="liveIndicator" class="live-badge live-off" role="status" aria-live="polite">○ OFF</div>
+      <div id="liveIndicator" class="live-badge live-off" role="status" aria-live="polite"><span data-icon="dot"></span> OFF</div>
       <div id="serverIndicator" class="server-badge server-off" role="status" aria-live="polite">SERVER KO</div>
       <button id="modeToggle" class="mode-toggle" title="Canviar entre assistent i mode avançat">Mode avançat</button>
     </div>
@@ -58,8 +58,8 @@
         <p class="hint">Es desa al navegador. Millor encara: arrenca amb <code>SPOTIFY_CLIENT_ID=…</code>.</p>
       </details>
       <div class="wiz-nav">
-        <button id="wizSkipSpotify" class="btn btn-ghost">Ho faré manualment →</button>
-        <button id="wizNext1" class="btn btn-accent" disabled>Continuar →</button>
+        <button id="wizSkipSpotify" class="btn btn-ghost">Ho faré manualment <span data-icon="arrow-right"></span></button>
+        <button id="wizNext1" class="btn btn-accent" disabled>Continuar <span data-icon="arrow-right"></span></button>
       </div>
     </div>
 
@@ -75,8 +75,8 @@
       </button>
       <p id="wizImportStatus" class="hint"></p>
       <div class="wiz-nav">
-        <button class="btn btn-ghost" data-wiz-back="1">← Enrere</button>
-        <button id="wizNext2" class="btn btn-accent" disabled>Continuar →</button>
+        <button class="btn btn-ghost" data-wiz-back="1"><span data-icon="arrow-left"></span> Enrere</button>
+        <button id="wizNext2" class="btn btn-accent" disabled>Continuar <span data-icon="arrow-right"></span></button>
       </div>
     </div>
 
@@ -87,8 +87,8 @@
       <div id="wizSongList" class="wiz-song-list"></div>
       <button id="wizAddSong" class="btn btn-ghost">+ Afegir cançó</button>
       <div class="wiz-nav">
-        <button class="btn btn-ghost" data-wiz-back="2">← Enrere</button>
-        <button id="wizNext3" class="btn btn-accent">Continuar →</button>
+        <button class="btn btn-ghost" data-wiz-back="2"><span data-icon="arrow-left"></span> Enrere</button>
+        <button id="wizNext3" class="btn btn-accent">Continuar <span data-icon="arrow-right"></span></button>
       </div>
     </div>
 
@@ -104,8 +104,8 @@
         <button id="wizDownloadPdf" class="btn btn-ghost full">Tornar a descarregar el PDF</button>
       </div>
       <div class="wiz-nav">
-        <button class="btn btn-ghost" data-wiz-back="3">← Enrere</button>
-        <button id="wizNext4" class="btn btn-accent" disabled>Anar a jugar →</button>
+        <button class="btn btn-ghost" data-wiz-back="3"><span data-icon="arrow-left"></span> Enrere</button>
+        <button id="wizNext4" class="btn btn-accent" disabled>Anar a jugar <span data-icon="arrow-right"></span></button>
       </div>
     </div>
 
@@ -123,20 +123,20 @@
         <div class="now-label">SEGÜENT</div>
         <div id="wizNextSong" class="wiz-next-song">—</div>
       </div>
-      <button id="wizDrawNext" class="btn btn-spotify big-btn full">▶ Següent cançó</button>
+      <button id="wizDrawNext" class="btn btn-spotify big-btn full"><span data-icon="play"></span> Següent cançó</button>
       <label class="wiz-snippet"><input id="wizSnippet" type="checkbox" checked /> Reproduir només un fragment de 30 segons</label>
       <div class="btn-row">
-        <button id="wizTogglePlay" class="btn btn-ghost">⏯ Reproduir / Pausar</button>
+        <button id="wizTogglePlay" class="btn btn-ghost"><span data-icon="play"></span> Reproduir / Pausar</button>
         <button id="wizShare" class="btn btn-accent">Compartir QR</button>
       </div>
-      <button id="wizCheck" class="btn btn-ghost full">✅ Comprovar cartó (escàner QR)</button>
+      <button id="wizCheck" class="btn btn-ghost full"><span data-icon="scan-line"></span> Comprovar cartó (escàner QR)</button>
       <div class="wiz-history-wrap">
         <div class="queue-title">Historial de cançons sonades</div>
         <ol id="wizHistory" class="drawn-list"><li class="drawn-empty">Encara cap cançó.</li></ol>
       </div>
       <div class="wiz-nav">
         <button id="wizOpenConsole" class="btn btn-ghost">Obrir consola completa (locutor)</button>
-        <button id="wizRestart" class="btn btn-ghost">↺ Nova quina</button>
+        <button id="wizRestart" class="btn btn-ghost"><span data-icon="rotate-ccw"></span> Nova quina</button>
       </div>
     </div>
   </section>
@@ -226,13 +226,13 @@
         <hr class="divider" />
         <h2 style="margin-top:2px">Connexió iPhone</h2>
         <p class="hint">La URL, el QR i la prova de connexió del mòbil són a la pestanya Mòbil.</p>
-        <button id="goToMobileTab" class="btn btn-ghost full">Obrir connexió mòbil →</button>
+        <button id="goToMobileTab" class="btn btn-ghost full">Obrir connexió mòbil <span data-icon="arrow-right"></span></button>
 
         <hr class="divider" />
 
         <label for="cardsCount">Cartons a generar</label>
         <input id="cardsCount" type="number" min="1" max="200" value="2" />
-        <button id="createCards" class="btn btn-accent full">Generar cartons →</button>
+        <button id="createCards" class="btn btn-accent full">Generar cartons <span data-icon="arrow-right"></span></button>
 
         <hr class="divider" />
 
@@ -250,7 +250,7 @@
 
         <button id="connectLive" class="btn btn-ghost full">Connectar en temps real</button>
         <div class="btn-row">
-          <button id="undoDraw" class="btn btn-ghost">↶ Desfer</button>
+          <button id="undoDraw" class="btn btn-ghost"><span data-icon="undo"></span> Desfer</button>
           <button id="locutorFullscreen" class="btn btn-ghost">Pantalla completa</button>
         </div>
         <div class="btn-row">
@@ -291,9 +291,9 @@
             loading="lazy"
           ></iframe>
           <div class="spotify-controls">
-            <button id="spotifyPrev" class="btn btn-ghost" aria-label="Cançó anterior">⏮</button>
-            <button id="spotifyToggle" class="btn btn-ghost" aria-label="Reproduir o pausar">⏯</button>
-            <button id="spotifyNext" class="btn btn-ghost" aria-label="Cançó següent">⏭</button>
+            <button id="spotifyPrev" class="btn btn-ghost" aria-label="Cançó anterior"><span data-icon="skip-back"></span></button>
+            <button id="spotifyToggle" class="btn btn-ghost" aria-label="Reproduir o pausar"><span data-icon="play"></span></button>
+            <button id="spotifyNext" class="btn btn-ghost" aria-label="Cançó següent"><span data-icon="skip-forward"></span></button>
             <label class="spotify-seek">
               Cercar
               <input id="spotifySeek" type="range" min="0" max="1000" value="0" />
@@ -320,7 +320,7 @@
           <div id="queueBlockedInfo" class="hint">Bloquejades: 0</div>
         </div>
 
-        <button id="drawNext" class="btn btn-primary full big-btn">▶ Següent cançó</button>
+        <button id="drawNext" class="btn btn-primary full big-btn"><span data-icon="play"></span> Següent cançó</button>
         <div class="btn-row">
           <button id="exportLogJson" class="btn btn-ghost">Registre JSON</button>
           <button id="exportLogCsv" class="btn btn-ghost">Registre CSV</button>
@@ -341,15 +341,15 @@
 
       <div class="game-top">
         <div class="now-strip" role="status" aria-live="polite">
-          <span class="now-strip-icon" aria-hidden="true">♫</span>
+          <span class="now-strip-icon" data-icon="music" aria-hidden="true"></span>
           <span id="gameNowArtist" class="now-strip-artist">—</span>
           <span class="now-strip-sep">·</span>
           <span id="gameNowTitle" class="now-strip-title">Esperant...</span>
         </div>
         <div class="card-nav">
-          <button id="prevCard" class="btn btn-ghost nav-btn" aria-label="Cartó anterior">←</button>
+          <button id="prevCard" class="btn btn-ghost nav-btn" aria-label="Cartó anterior"><span data-icon="chevron-left"></span></button>
           <p id="cardMeta" class="card-meta">Sense cartó</p>
-          <button id="nextCard" class="btn btn-ghost nav-btn" aria-label="Cartó següent">→</button>
+          <button id="nextCard" class="btn btn-ghost nav-btn" aria-label="Cartó següent"><span data-icon="chevron-right"></span></button>
         </div>
       </div>
 
@@ -357,7 +357,7 @@
 
       <div class="game-actions">
         <button id="claimLine" class="btn btn-accent">Reclamar línia</button>
-        <button id="claimBingo" class="btn btn-primary">¡BINGO!</button>
+        <button id="claimBingo" class="btn btn-primary">BINGO!</button>
         <button id="downloadCurrentPdf" class="btn btn-ghost">PDF cartó</button>
         <button id="showCardQr" class="btn btn-ghost">QR cartó</button>
       </div>

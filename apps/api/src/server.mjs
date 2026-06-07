@@ -443,7 +443,7 @@ function renderValidateCardHtml(nonce) {
 </head>
 <body>
   <main class="wrap">
-    <div class="logo">♫ <span>QUINAPP</span> · Validació cartó</div>
+    <div class="logo"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg> <span>QUINAPP</span> · Validació cartó</div>
     <section class="card">
       <h1>Estat del cartó</h1>
       <div id="badge" class="badge loading">CARREGANT</div>
@@ -473,7 +473,7 @@ function renderValidateCardHtml(nonce) {
         const res = await fetch('/api/validate-card?d='+encodeURIComponent(d||'')+'&s='+encodeURIComponent(s||''));
         const data = await res.json();
         if(!res.ok) throw new Error(data.error || 'No es pot validar');
-        badgeEl.textContent = data.valid ? '✓ VALID' : '✗ NO VALID';
+        badgeEl.textContent = data.valid ? 'VÀLID' : 'NO VÀLID';
         badgeEl.className = 'badge ' + (data.valid ? 'valid' : 'invalid');
         progressEl.textContent = data.matched + ' / ' + data.total + ' cançons sonades';
         pinEl.textContent = 'PIN: ' + data.pin;
@@ -507,41 +507,55 @@ function renderValidateBatchHtml(nonce) {
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Escaneig per lots · QUINAPP</title>
+  <meta name="theme-color" content="#ffe234" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700;800&display=swap" rel="stylesheet" />
   <style>
-    :root{--bg:#f7f7f7;--ink:#111;--muted:#666}
-    *{box-sizing:border-box}
-    body{margin:0;font-family:"Space Grotesk",system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--ink)}
-    .wrap{max-width:980px;margin:0 auto;padding:20px}
-    .head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+    :root{--bg:#faf9f6;--panel:#fff;--ink:#0d0d0d;--muted:#6b6b6b;--brand:#ff4b4b;--accent:#ffe234;--green:#1db954;--border:3px solid #0d0d0d;--shadow:5px 5px 0 #0d0d0d;--shadow-sm:3px 3px 0 #0d0d0d}
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:"Space Grotesk",system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--ink);line-height:1.4}
+    .appbar{background:var(--accent);border-bottom:var(--border);padding:12px 16px;display:flex;align-items:center;gap:8px;font-weight:800;letter-spacing:.08em;position:sticky;top:0;z-index:10}
+    .appbar svg{width:22px;height:22px}
+    .wrap{max-width:980px;margin:0 auto;padding:20px 16px 44px}
+    .head{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:14px}
     .head-actions{display:flex;gap:8px;flex-wrap:wrap}
-    h1{margin:0;font-size:24px;letter-spacing:.05em;text-transform:uppercase}
+    h1{font-size:24px;letter-spacing:.04em;text-transform:uppercase}
     .hint{font-size:13px;color:var(--muted)}
-    .panel{background:#fff;border:2px solid #111;box-shadow:6px 6px 0 #111;padding:14px}
-    .grid{display:grid;grid-template-columns:360px 1fr;gap:14px;margin-top:14px}
+    .panel{background:var(--panel);border:var(--border);box-shadow:var(--shadow);padding:16px}
+    .grid{display:grid;grid-template-columns:360px 1fr;gap:16px}
     @media(max-width:900px){.grid{grid-template-columns:1fr}}
-    video{width:100%;aspect-ratio:3/4;background:#000;border:2px solid #111}
-    .controls{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+    video{width:100%;aspect-ratio:3/4;background:#000;border:var(--border)}
+    .controls{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
     button,input,select{font:inherit}
-    button{border:2px solid #111;background:#fff;padding:8px 10px;cursor:pointer;font-weight:700}
-    button:disabled{opacity:.5;cursor:not-allowed}
-    input,select{border:2px solid #111;padding:8px 10px;width:100%}
-    .status{font-size:14px;margin-top:8px}
+    button{border:var(--border);box-shadow:var(--shadow-sm);background:#fff;color:var(--ink);padding:10px 12px;cursor:pointer;font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+    button:active{transform:translate(3px,3px);box-shadow:none}
+    button:disabled{opacity:.4;cursor:not-allowed}
+    button svg{width:16px;height:16px}
+    #startBtn{background:var(--green);color:#fff}
+    #photoBtn,#exportCsvBtn{background:var(--accent)}
+    input,select{border:var(--border);background:var(--bg);padding:10px 12px;width:100%}
+    .status{font-size:14px;margin-top:10px;font-weight:700}
     .list{display:flex;flex-direction:column;gap:8px;max-height:72vh;overflow:auto}
-    .item{border:2px solid #111;padding:10px;background:#fff}
-    .item.ok{background:#fff}
-    .item.bad{background:#fff}
+    .item{border:var(--border);box-shadow:var(--shadow-sm);padding:10px 12px;background:#fff;border-left-width:8px}
+    .item.ok{border-left-color:var(--green)}
+    .item.bad{border-left-color:var(--brand)}
     .top{display:flex;justify-content:space-between;gap:8px;align-items:center}
-    .badge{font-size:12px;font-weight:800;letter-spacing:.08em}
-    .meta{font-size:13px;color:#333}
-    .small{font-size:12px;color:#666}
+    .badge{font-size:12px;font-weight:800;letter-spacing:.06em;padding:3px 8px;border:2px solid var(--ink)}
+    .item.ok .badge{background:var(--green);color:#fff}
+    .item.bad .badge{background:var(--brand);color:#fff}
+    .meta{font-size:13px;color:#333;margin-top:6px}
+    .small{font-size:12px;color:var(--muted)}
     .actions{display:flex;justify-content:flex-end;margin-top:8px}
-    .actions button{font-size:12px;padding:6px 8px}
-    .filters{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0 10px}
-    .summary{font-size:12px;color:#666;margin-bottom:8px}
+    .actions button{font-size:12px;padding:6px 8px;box-shadow:none}
+    .filters{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+    .summary{font-size:12px;color:var(--muted);margin-bottom:8px;font-weight:700}
     ul{margin:8px 0 0;padding-left:18px}
+    .label{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:10px 0 4px}
   </style>
 </head>
 <body>
+  <div class="appbar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg> QUINAPP · Escàner</div>
   <main class="wrap">
     <div class="head">
       <div>
@@ -549,26 +563,24 @@ function renderValidateBatchHtml(nonce) {
         <div class="hint">Escaneja diversos QR seguits sense sortir de la pantalla.</div>
       </div>
       <div class="head-actions">
-        <button id="exportCsvBtn">Exportar CSV</button>
-        <button id="clearBtn">Netejar llista</button>
+        <button id="exportCsvBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg> Exportar CSV</button>
+        <button id="clearBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg> Netejar llista</button>
       </div>
     </div>
     <section class="grid">
       <div class="panel">
         <video id="video" autoplay playsinline muted></video>
         <div class="controls">
-          <button id="startBtn">Iniciar camera</button>
+          <button id="startBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg> Iniciar càmera</button>
           <button id="stopBtn" disabled>Aturar</button>
-          <button id="photoBtn">Foto QR</button>
+          <button id="photoBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 12h10"/></svg> Foto QR</button>
         </div>
         <div class="status" id="status">Estat: a punt</div>
-        <div style="margin-top:10px">
-          <div class="small">Alternativa manual URL QR</div>
-          <input id="manualInput" placeholder="Enganxa URL /validate-card?d=...&s=..." />
-          <input id="photoInput" type="file" accept="image/*" capture="environment" hidden />
-          <div class="controls">
-            <button id="manualBtn">Validar manual</button>
-          </div>
+        <div class="label">Alternativa manual (URL del QR)</div>
+        <input id="manualInput" placeholder="Enganxa URL /validate-card?d=...&s=..." />
+        <input id="photoInput" type="file" accept="image/*" capture="environment" hidden />
+        <div class="controls">
+          <button id="manualBtn">Validar manual</button>
         </div>
       </div>
       <div class="panel">
@@ -973,30 +985,42 @@ function renderPlayCardHtml(pin, card, nonce) {
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Cartó ${htmlEscape(card.number)} · QUINAPP</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700;800&display=swap" rel="stylesheet" />
   <style>
-    :root{--bg:#f7f7f7;--ink:#111;--muted:#666;--marked:#000;--unmarked:#999}
-    *{box-sizing:border-box}
-    body{margin:0;font-family:"Space Grotesk",system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--ink)}
-    .wrap{max-width:600px;margin:0 auto;padding:20px}
-    .header{text-align:center;margin-bottom:20px}
-    h1{margin:0 0 8px;font-size:24px;letter-spacing:.04em;text-transform:uppercase}
-    .meta{font-size:14px;color:var(--muted)}
-    .grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:20px 0}
-    .cell{background:#fff;border:2px solid #111;padding:12px;text-align:center;font-weight:700;cursor:pointer;user-select:none;transition:background 0.2s}
-    .cell.marked{background:var(--marked);color:#fff}
-    .cell.unmarked{background:#fff;color:var(--ink)}
-    .artist{font-size:12px;color:var(--muted);margin-bottom:2px}
-    .title{font-size:14px}
-    .actions{display:flex;gap:10px;justify-content:center;margin-top:20px}
-    button{border:2px solid #111;background:#fff;padding:12px 16px;font-weight:700;cursor:pointer}
-    button:disabled{opacity:.5;cursor:not-allowed}
-    .status{margin-top:20px;text-align:center;font-size:18px;font-weight:700}
-    .now-playing{background:#fff;border:2px solid #111;padding:16px;margin:20px 0;text-align:center}
-    .now-playing h2{margin:0 0 8px;font-size:18px;text-transform:uppercase}
-    .now-song{font-size:20px;font-weight:800}
+    :root{--bg:#faf9f6;--panel:#fff;--ink:#0d0d0d;--muted:#6b6b6b;--brand:#ff4b4b;--accent:#ffe234;--green:#1db954;--border:3px solid #0d0d0d;--shadow-sm:3px 3px 0 #0d0d0d}
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:"Space Grotesk",system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--ink);line-height:1.4}
+    .appbar{background:var(--accent);border-bottom:var(--border);padding:12px 16px;display:flex;align-items:center;gap:8px;font-weight:800;letter-spacing:.08em;position:sticky;top:0;z-index:10}
+    .appbar svg{width:22px;height:22px}
+    .wrap{max-width:600px;margin:0 auto;padding:20px 16px 44px}
+    .header{text-align:center;margin-bottom:18px}
+    h1{font-size:24px;letter-spacing:.04em;text-transform:uppercase}
+    .meta{font-size:14px;color:var(--muted);margin-top:4px;font-variant-numeric:tabular-nums}
+    .now-playing{background:var(--accent);border:var(--border);box-shadow:var(--shadow-sm);padding:16px;margin:18px 0;text-align:center}
+    .now-playing h2{font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;opacity:.6;margin-bottom:6px}
+    .now-song{font-size:20px;font-weight:800;word-break:break-word}
+    .grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:18px 0}
+    .cell{background:#fff;border:var(--border);box-shadow:var(--shadow-sm);padding:10px 6px;text-align:center;font-weight:700;cursor:pointer;user-select:none;transition:transform .08s,background .15s,box-shadow .08s}
+    .cell:active{transform:translate(2px,2px);box-shadow:none}
+    .cell.marked{background:var(--ink);color:#fff}
+    .artist{font-size:11px;color:var(--muted);margin-bottom:2px}
+    .cell.marked .artist{color:#ffffffb3}
+    .title{font-size:13px;line-height:1.15}
+    .actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px}
+    button{font-family:inherit;border:var(--border);box-shadow:var(--shadow-sm);padding:14px 12px;font-weight:700;font-size:14px;cursor:pointer;background:#fff;color:var(--ink);display:inline-flex;align-items:center;justify-content:center;gap:8px}
+    button:active{transform:translate(3px,3px);box-shadow:none}
+    button:disabled{opacity:.4;cursor:not-allowed}
+    #claimLine{background:var(--accent)}
+    #claimBingo{background:var(--green);color:#fff}
+    button svg{width:18px;height:18px}
+    .status{margin-top:18px;text-align:center;font-size:18px;font-weight:800;min-height:24px}
+    @media(max-width:430px){.grid{gap:6px}.cell{padding:8px 4px}.title{font-size:12px}.artist{font-size:10px}}
   </style>
 </head>
 <body>
+  <div class="appbar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg> QUINAPP</div>
   <div class="wrap">
     <div class="header">
       <h1>Cartó #${htmlEscape(card.number)}</h1>
@@ -1004,15 +1028,15 @@ function renderPlayCardHtml(pin, card, nonce) {
     </div>
 
     <div id="nowPlaying" class="now-playing">
-      <h2>Cançó actual</h2>
-      <div id="nowSong" class="now-song">Esperant...</div>
+      <h2>Sonant ara</h2>
+      <div id="nowSong" class="now-song">Esperant…</div>
     </div>
 
     <div id="grid" class="grid"></div>
 
     <div class="actions">
-      <button id="claimLine">Reclamar línia</button>
-      <button id="claimBingo">¡BINGO!</button>
+      <button id="claimLine"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg> Reclamar línia</button>
+      <button id="claimBingo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg> BINGO!</button>
     </div>
 
     <div id="status" class="status"></div>
@@ -1083,7 +1107,7 @@ function renderPlayCardHtml(pin, card, nonce) {
         const last = drawnSongs[drawnSongs.length - 1];
         now.textContent = \`\${last.artist} — \${last.title}\`;
       } else {
-        now.textContent = 'Esperant...';
+        now.textContent = 'Esperant…';
       }
     }
 
@@ -1098,7 +1122,7 @@ function renderPlayCardHtml(pin, card, nonce) {
         });
         const data = await res.json();
         if (res.ok) {
-          status.textContent = data.valid ? \`¡\${type.toUpperCase()} vàlid!\` : \`\${type.toUpperCase()} no vàlid\`;
+          status.textContent = data.valid ? \`\${type.toUpperCase()} vàlid!\` : \`\${type.toUpperCase()} no vàlid\`;
         } else {
           status.textContent = data.error || 'Error';
         }
