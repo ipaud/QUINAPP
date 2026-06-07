@@ -30,6 +30,10 @@ Funciona de dues maneres sobre el **mateix servidor** (HTTP + SQLite):
 
 En els dos casos el servidor també serveix la interfície per al mòbil dins la mateixa Wi-Fi.
 
+> ⭐ **Accés directe (macOS):** hi ha un **`QUINAPP.app`** que ja funciona — **doble clic
+> i s'obre l'app** al navegador, sense terminal ni comandes. Ideal per a usuaris no tècnics.
+> Es genera amb `npm run app:macos` (vegeu més avall).
+
 ## Característiques
 
 - 🧭 **Assistent guiat de 5 passos** (vista per defecte): Spotify → Playlist → Cançons → Cartons → Jugar.
