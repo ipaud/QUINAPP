@@ -8,7 +8,7 @@ Connecta amb Spotify, importa una playlist, genera cartons en PDF amb QR signats
 sorteja en directe amb reproducció automàtica (fragments de 30 s) i valida els cartons
 guanyadors escanejant el QR des del mòbil.
 
-![Assistent guiat](docs/screenshots/00-wizard.png)
+<img src="docs/screenshots/14-wizard-play.png" alt="QUINAPP — pantalla de joc" width="520" />
 
 </div>
 
@@ -29,16 +29,6 @@ Funciona de dues maneres sobre el **mateix servidor** (HTTP + SQLite):
 - 🖥️ **App d'escriptori (opcional, macOS)** — embolcall Electron amb empaquetat `.dmg`.
 
 En els dos casos el servidor també serveix la interfície per al mòbil dins la mateixa Wi-Fi.
-
-## Captures
-
-| Locutor (sorteig en directe) | Joc (cartó) |
-|---|---|
-| ![Locutor](docs/screenshots/02-locutor.png) | ![Joc](docs/screenshots/03-game.png) |
-
-| Connexió mòbil | Cartó del jugador (mòbil) | Escàner QR per lots |
-|---|---|---|
-| ![Mòbil](docs/screenshots/04-mobile.png) | ![Cartó jugador](docs/screenshots/05-player-card.png) | ![Escàner QR](docs/screenshots/06-qr-scanner.png) |
 
 ## Característiques
 
@@ -134,6 +124,7 @@ local; els més rellevants:
 | Variable | Per a què | Per defecte |
 |---|---|---|
 | `PORT` / `HOST` | Port i host del servidor | `3000` / `127.0.0.1` (Electron força `0.0.0.0`) |
+| `HTTPS_PORT` / `QUINAPP_HTTPS` | HTTPS (cert autosignat) per a la càmera mòbil | `3443` / actiu (`0` per desactivar) |
 | `PUBLIC_BASE_URL` | URL pública als QR (ideal per LAN) | autodetecció IP local |
 | `QR_HMAC_SECRET` | Secret per signar QR | aleatori persistit a `data/qr-secret.key` |
 | `QR_TTL_DAYS` | Caducitat dels QR | `30` |
@@ -147,13 +138,27 @@ local; els més rellevants:
 
 La primera pantalla és un **assistent** pensat per a qualsevol usuari:
 
-1. **Spotify** — botó verd que obre el **popup de consentiment** (o «Ho faré manualment»).
-2. **Playlist** — enganxa l'enllaç d'una llista (Spotify/YouTube) i importa les cançons.
-3. **Cançons** — llista editable: afegeix, edita o esborra (mínim 15 per a cartons de 3×5).
-4. **Cartons** — tria quants i prem **Generar cartons i PDF**; s'assigna un **PIN automàtic** de la partida.
-5. **Jugar** — **▶ Següent cançó** (amb autoplay), **Sonant ara** + **Següent** + **historial**,
-   ⏯ reproduir/pausar, toggle **fragment de 30 s**, **Compartir QR** (connexió mòbil) i
-   **✅ Comprovar cartó** (obre un QR cap a l'escàner de validació). Botó **Nova quina** per recomençar.
+**1. Spotify** — botó verd que obre el **popup de consentiment** (o «Ho faré manualment»).
+
+<img src="docs/screenshots/10-wizard-spotify.png" alt="Pas 1 · Connectar Spotify" width="560" />
+
+**2. Playlist** — enganxa l'enllaç d'una llista (Spotify/YouTube) i importa les cançons.
+
+<img src="docs/screenshots/11-wizard-playlist.png" alt="Pas 2 · Importar playlist" width="560" />
+
+**3. Cançons** — llista editable: afegeix, edita o esborra (mínim 15 per a cartons de 3×5).
+
+<img src="docs/screenshots/12-wizard-songs.png" alt="Pas 3 · Editar cançons" width="560" />
+
+**4. Cartons** — tria quants i prem **Generar cartons i PDF**; s'assigna un **PIN automàtic** de la partida.
+
+<img src="docs/screenshots/13-wizard-cards.png" alt="Pas 4 · Generar cartons" width="560" />
+
+**5. Jugar** — **▶ Següent cançó** (amb autoplay), **Sonant ara** + **Següent** + **historial**,
+⏯ reproduir/pausar, toggle **fragment de 30 s**, **Compartir QR** (connexió mòbil) i
+**✅ Comprovar cartó** (obre un QR cap a l'escàner de validació). Botó **Nova quina** per recomençar.
+
+<img src="docs/screenshots/14-wizard-play.png" alt="Pas 5 · Jugar" width="560" />
 
 > L'estat de l'assistent es desa al navegador: si recarregues a mig flux, recupera el pas i les dades.
 
@@ -186,8 +191,12 @@ La primera pantalla és un **assistent** pensat per a qualsevol usuari:
   continu. Obre'l al mòbil (mateixa Wi-Fi) per validar els cartons dels jugadors.
 - L'escàner descodifica amb **jsQR servit local** (`/vendor/jsQR.js`) → funciona encara que
   un adblocker bloquegi CDNs.
-- La **càmera en directe** requereix context segur (HTTPS o localhost); per LAN sobre HTTP,
-  usa el botó **«Foto QR»** (fer una foto del QR), que sí funciona.
+- La **càmera en directe** requereix context segur. Per això s'arrenca també un servidor
+  **HTTPS** (port `3443`) amb cert autosignat; el QR de «Comprovar» hi apunta. Al mòbil,
+  accepta l'avís de certificat un cop i ja pots usar la càmera. (Alternativa sempre vàlida:
+  el botó **«Foto QR»**, que fa una foto del QR.)
+
+<p align="center"><img src="docs/screenshots/06-qr-scanner.png" alt="Escàner QR per lots" width="640" /></p>
 
 ### Mode avançat
 
@@ -195,6 +204,8 @@ El botó **Mode avançat** (capçalera) mostra la consola completa per a operado
 4 pestanyes: **Sessió · Locutor · Joc · Mòbil** (seed, PIN admin, importadors CSV/XLSX,
 PDF Pro detallat, dreceres de teclat al locutor: `Espai` següent · `S` saltar · `R`
 repetir · `B` bloquejar · `U` desfer · `F` pantalla completa).
+
+<p align="center"><img src="docs/screenshots/02-locutor.png" alt="Consola de locutor (mode avançat)" width="640" /></p>
 
 ## API
 
@@ -232,6 +243,9 @@ Pàgines HTML per al mòbil: `/play-card`, `/validate-card`, `/validate-batch`.
   contra les cançons ja sonades de la sessió.
 - `/validate-batch` permet escanejar molts QR seguits: càmera en directe (detector natiu o
   **jsQR servit local**) o **foto del QR**, amb so/vibració i exportació CSV.
+- `/play-card` és la pantalla del jugador al mòbil: marca les caselles i reclama línia/bingo.
+
+<p align="center"><img src="docs/screenshots/05-player-card.png" alt="Cartó del jugador (mòbil)" width="320" /></p>
 
 ## Seguretat
 
