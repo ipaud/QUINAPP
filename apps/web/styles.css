@@ -993,3 +993,17 @@ body.advanced #wizard { display: none; }
   color: var(--muted);
   margin-bottom: 8px;
 }
+
+.wiz-snippet {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--ink);
+  margin: -2px 0 2px;
+  cursor: pointer;
+}
+.wiz-snippet input { width: auto; }

@@ -37,7 +37,14 @@ const spotifyPlayback = {
   ready: false,
   paused: true,
   volume: 0.8,
+  snippetTimer: null,
 };
+
+const SNIPPET_MS = 30_000; // durada del fragment quan el mode «30 s» està actiu
+
+function snippetEnabled() {
+  try { return localStorage.getItem('qm_snippet') !== '0'; } catch { return true; }
+}
 
 const els = {
   pin:           document.querySelector('#pin'),
@@ -663,6 +670,13 @@ async function spotifyPlaySong(song, forceAutoplay = false) {
     if (!wantAuto) await spotifyPlayback.player.pause();
     setSpotifySdkStatus('a punt');
     updateSpotifyPlayer(song, wantAuto);
+    // Mode fragment: pausa als 30 s (com la preview de Spotify free).
+    clearTimeout(spotifyPlayback.snippetTimer);
+    if (wantAuto && snippetEnabled()) {
+      spotifyPlayback.snippetTimer = setTimeout(() => {
+        spotifyPlayback.player?.pause().catch(() => {});
+      }, SNIPPET_MS);
+    }
   } catch (error) {
     setSpotifySdkStatus(`fallback embed (${error.message})`);
     updateSpotifyPlayer(song, wantAuto);
@@ -2049,6 +2063,7 @@ document.addEventListener('keydown', (event) => {
     counter: document.getElementById('wizCounter'),
     nextSong: document.getElementById('wizNextSong'),
     togglePlay: document.getElementById('wizTogglePlay'),
+    snippet: document.getElementById('wizSnippet'),
     history: document.getElementById('wizHistory'),
     spotifyHint: document.getElementById('wizSpotifyHint'),
     openConsole: document.getElementById('wizOpenConsole'),
@@ -2246,6 +2261,12 @@ document.addEventListener('keydown', (event) => {
     try { await spotifyTogglePlayback(); }
     catch (e) { showToast(e.message || 'No es pot canviar la reproducció', 'error'); }
   });
+  if (W.snippet) {
+    W.snippet.checked = snippetEnabled();
+    W.snippet.addEventListener('change', () => {
+      try { localStorage.setItem('qm_snippet', W.snippet.checked ? '1' : '0'); } catch {}
+    });
+  }
   W.openConsole?.addEventListener('click', () => { setMode(true); switchTab('locutor'); });
   W.share?.addEventListener('click', async () => {
     try {
