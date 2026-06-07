@@ -973,15 +973,15 @@ body.advanced #wizard { display: none; }
 .wiz-next-hero {
   border: var(--border);
   box-shadow: var(--shadow-sm);
-  background: #2b2b2b;
-  color: #fff;
+  background: #e8c61c;
+  color: var(--ink);
   padding: 12px 16px;
   text-align: center;
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
-.wiz-next-hero .now-label { color: #fff; opacity: 0.55; }
+.wiz-next-hero .now-label { color: var(--ink); opacity: 0.55; }
 .wiz-next-song {
   font-size: 18px;
   font-weight: 800;
