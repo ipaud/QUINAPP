@@ -5,6 +5,9 @@ node_modules
 # Build artifacts (packaged app, ~370 MB)
 dist/
 
+# macOS shortcut app (generat amb npm run app:macos; específic de màquina)
+QUINAPP.app/
+
 # Runtime pid/log files
 .quinapp-*.pid
 .quinapp-dev.log
