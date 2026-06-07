@@ -662,7 +662,9 @@ function spotifyLogout() {
   updateSpotifyStatus();
 }
 
-async function spotifyStartLogin() {
+const SPOTIFY_POPUP_NAME = 'qm-spotify-login';
+
+async function buildSpotifyAuthUrl() {
   const clientId = currentSpotifyClientId();
   if (!clientId) throw new Error('Falta el Client ID de Spotify: configura SPOTIFY_CLIENT_ID al servidor o omple el camp');
   lsSet(SPOT_KEYS.clientId, clientId);
@@ -682,7 +684,42 @@ async function spotifyStartLogin() {
   auth.searchParams.set('state', stateValue);
   auth.searchParams.set('code_challenge_method', 'S256');
   auth.searchParams.set('code_challenge', challenge);
-  location.href = auth.toString();
+  return auth.toString();
+}
+
+// Full-page redirect login (mode avançat).
+async function spotifyStartLogin() {
+  location.href = await buildSpotifyAuthUrl();
+}
+
+// Popup login (assistent): obre una finestra nova com fan altres apps.
+// Resol true quan el token ja és vàlid; cau a redirect si el popup està bloquejat.
+async function spotifyStartLoginPopup() {
+  const url = await buildSpotifyAuthUrl();
+  const w = 480;
+  const h = 730;
+  const left = (window.screenX ?? 0) + Math.max(0, ((window.outerWidth || 1024) - w) / 2);
+  const top = (window.screenY ?? 0) + Math.max(0, ((window.outerHeight || 768) - h) / 2);
+  const popup = window.open(url, SPOTIFY_POPUP_NAME, `width=${w},height=${h},left=${left},top=${top}`);
+  if (!popup) {
+    // Popup bloquejat pel navegador → torna al redirect de pàgina sencera.
+    lsSet('qm_wiz_resume', '2');
+    location.href = url;
+    return false;
+  }
+  return new Promise((resolve) => {
+    const start = Date.now();
+    const timer = setInterval(() => {
+      if (spotifyConnected()) {
+        clearInterval(timer);
+        try { popup.close(); } catch {}
+        resolve(true);
+      } else if (popup.closed || Date.now() - start > 180_000) {
+        clearInterval(timer);
+        resolve(spotifyConnected());
+      }
+    }, 700);
+  });
 }
 
 async function spotifyHandleRedirect() {
@@ -720,12 +757,19 @@ async function spotifyHandleRedirect() {
   if (data.refresh_token) lsSet(SPOT_KEYS.refresh, data.refresh_token);
   lsDel(SPOT_KEYS.verifier);
   lsDel(SPOT_KEYS.state);
+  updateSpotifyStatus();
+
+  // Si això corre dins el popup de login, tanca'l: l'obridor detecta el token
+  // (localStorage compartit) i continua l'assistent.
+  if (window.opener && window.name === SPOTIFY_POPUP_NAME) {
+    try { window.close(); } catch {}
+    return;
+  }
 
   const clean = new URL(location.href);
   clean.searchParams.delete('code');
   clean.searchParams.delete('state');
   history.replaceState({}, '', clean.pathname + clean.search);
-  updateSpotifyStatus();
   showToast('Spotify connectat', 'success');
 }
 
@@ -2013,8 +2057,16 @@ document.addEventListener('keydown', (event) => {
         return;
       }
       if ((W.clientId?.value || '').trim()) lsSet(SPOT_KEYS.clientId, cid);
-      lsSet(RESUME_KEY, '2');
-      await spotifyStartLogin();
+      // No usem withBusy: canviaria textContent i eliminaria el logo SVG.
+      if (W.spotConnect) W.spotConnect.disabled = true;
+      let ok = false;
+      try { ok = await spotifyStartLoginPopup(); }
+      finally { if (W.spotConnect) W.spotConnect.disabled = false; }
+      refreshSpotifyStep();
+      if (ok || spotifyConnected()) {
+        showToast('Spotify connectat', 'success');
+        showStep(2);
+      }
     } catch (e) { showToast(e.message, 'error'); }
   });
   W.skipSpotify?.addEventListener('click', () => {

@@ -146,8 +146,17 @@ La primera pantalla és un **assistent** pensat per a qualsevol usuari:
 4. **Cartons** — tria quants i prem **Generar cartons i PDF** (s'assigna un PIN automàtic).
 5. **Jugar** — **▶ Següent cançó** i a sortejar.
 
-> 🎧 Per al login de Spotify cal una *app* de Spotify (Client ID) i registrar el *Redirect
-> URI* `http://127.0.0.1:3000/`. Passa el Client ID amb `SPOTIFY_CLIENT_ID=… npm start`.
+> 🎧 **Spotify (configuració única).** Com qualsevol app amb «Entra amb Spotify», QUINAPP
+> necessita **una** app de Spotify registrada; el seu *Client ID* (que **no** és secret en
+> PKCE) queda incrustat via `SPOTIFY_CLIENT_ID`. Llavors l'usuari final només veu el **popup
+> de consentiment** de Spotify — no escriu cap ID.
+>
+> 1. Crea una app a <https://developer.spotify.com/dashboard> i copia el *Client ID*.
+> 2. A *Redirect URIs* afegeix `http://127.0.0.1:3000/` (i la teva URL LAN si la fas servir).
+> 3. Arrenca amb `SPOTIFY_CLIENT_ID=EL_TEU_ID npm start`.
+>
+> El botó verd obre una **finestra nova** de login/consentiment i torna sol a l'assistent.
+> Sense configurar res, el primer clic mostra un camp per posar el Client ID un sol cop.
 > Sense Spotify, fes servir «Ho faré manualment» i escriu/importa les cançons.
 
 ### Mode avançat
