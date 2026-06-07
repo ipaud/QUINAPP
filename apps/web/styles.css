@@ -970,13 +970,24 @@ body.advanced #wizard { display: none; }
 .btn-spotify .spotify-ico { flex-shrink: 0; }
 
 /* ── Wizard pas 5 (jugar) ── */
-.wiz-next-box {
-  border: 2px dashed #bbb;
-  padding: 10px 12px;
-  font-weight: 700;
-  font-size: 14px;
+.wiz-next-hero {
+  border: var(--border);
+  box-shadow: var(--shadow-sm);
+  background: #2b2b2b;
+  color: #fff;
+  padding: 12px 16px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
-.wiz-next-box span { color: var(--muted); font-weight: 500; }
+.wiz-next-hero .now-label { color: #fff; opacity: 0.55; }
+.wiz-next-song {
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1.2;
+  word-break: break-word;
+}
 .wiz-history-wrap {
   border: var(--border);
   box-shadow: var(--shadow-sm);
