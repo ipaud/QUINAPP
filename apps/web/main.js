@@ -2315,7 +2315,8 @@ document.addEventListener('keydown', (event) => {
   W.check?.addEventListener('click', async () => {
     try {
       // QR generat al servidor (no depèn de cap CDN, immune a adblockers).
-      const res = await fetch('/api/system/qr?path=/validate-batch');
+      // secure=1 → URL HTTPS perquè la càmera del mòbil funcioni.
+      const res = await fetch('/api/system/qr?path=/validate-batch&secure=1');
       const data = await res.json().catch(() => ({}));
       if (data.qrDataUrl) {
         showQrModal('Escàner de validació de cartons', data.qrDataUrl, data.url);

@@ -1214,7 +1214,7 @@ async function serveStatic(req, res, pathname) {
   }
 }
 
-const server = http.createServer(async (req, res) => {
+const requestHandler = async (req, res) => {
   const url = new URL(req.url, 'http://localhost');
   const pathname = url.pathname;
 
@@ -1592,10 +1592,19 @@ const server = http.createServer(async (req, res) => {
       }
 
       // QR del path indicat, generat al servidor (sense dependre de CDN/adblock).
+      // ?secure=1 → URL HTTPS (LAN) perquè la càmera del mòbil funcioni.
       if (req.method === 'GET' && pathname === '/api/system/qr') {
-        const port = Number(process.env.PORT || 3000);
-        const urls = listNetworkUrls(port);
-        const base = process.env.PUBLIC_BASE_URL || urls.find((u) => !u.includes('127.0.0.1') && !u.includes('localhost')) || urls[0] || '';
+        const secure = url.searchParams.get('secure') === '1' && process.env.QUINAPP_HTTPS !== '0';
+        const httpsPort = Number(process.env.HTTPS_PORT || 3443);
+        const httpPort = Number(process.env.PORT || 3000);
+        const lan = listNetworkUrls(secure ? httpsPort : httpPort)
+          .find((u) => !u.includes('127.0.0.1') && !u.includes('localhost'));
+        let base;
+        if (secure) {
+          base = (lan ? lan.replace('http://', 'https://') : `https://127.0.0.1:${httpsPort}`);
+        } else {
+          base = process.env.PUBLIC_BASE_URL || lan || `http://127.0.0.1:${httpPort}`;
+        }
         let path = String(url.searchParams.get('path') || '/');
         if (!path.startsWith('/')) path = `/${path}`;
         const target = `${String(base).replace(/\/$/, '')}${path}`;
@@ -1698,15 +1707,44 @@ const server = http.createServer(async (req, res) => {
   }
 
   await serveStatic(req, res, pathname);
-});
+};
+
+const server = http.createServer(requestHandler);
 
 const PORT = Number(process.env.PORT || 3000);
 const HOST = process.env.HOST || '127.0.0.1';
 server.listen(PORT, HOST, () => {
-  console.log(`QUINAPP v3 (faseada) corriendo en http://${HOST}:${PORT}`);
+  console.log(`QUINAPP corrent a http://${HOST}:${PORT}`);
   console.log(`SQLite: ${dbPath}`);
 });
 
 server.on('close', () => {
   clearInterval(ssePingTimer);
 });
+
+// ── HTTPS (cert autosignat) per a la càmera del mòbil ─────────────────────────
+// getUserMedia exigeix context segur; per LAN cal HTTPS. Desactiva amb QUINAPP_HTTPS=0.
+const HTTPS_PORT = Number(process.env.HTTPS_PORT || 3443);
+if (process.env.QUINAPP_HTTPS !== '0') {
+  (async () => {
+    try {
+      const https = await import('node:https');
+      const { getOrCreateCert } = await import('./lib/tls.mjs');
+      const { key, cert } = await getOrCreateCert();
+      const httpsServer = https.createServer({ key, cert }, requestHandler);
+      httpsServer.listen(HTTPS_PORT, HOST, () => {
+        const ip = listNetworkUrls(HTTPS_PORT).find((u) => !u.includes('127.0.0.1') && !u.includes('localhost'));
+        const lan = ip ? ip.replace('http://', 'https://') : `https://${HOST}:${HTTPS_PORT}`;
+        console.log(`QUINAPP HTTPS (càmera mòbil) a ${lan}`);
+      });
+      httpsServer.on('error', (err) => {
+        console.error('[HTTPS] no disponible:', err.message);
+      });
+      httpsServer.on('close', () => clearInterval(ssePingTimer));
+    } catch (err) {
+      console.error('[HTTPS] error iniciant:', err.message);
+    }
+  })();
+}
+
+export { HTTPS_PORT };

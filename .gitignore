@@ -9,10 +9,12 @@ dist/
 .quinapp-*.pid
 .quinapp-dev.log
 
-# Local SQLite database + per-install QR secret
+# Local SQLite database + per-install QR secret + self-signed TLS cert
 data/*.db
 data/*.db-*
 data/qr-secret.key
+data/*.pem
+data/cert.meta.json
 
 # Env
 .env

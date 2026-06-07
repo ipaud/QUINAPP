@@ -43,7 +43,11 @@ await import('../apps/api/src/server.mjs');
 if (await waitHealth()) {
   console.log(`\n✅ QUINAPP a ${LOCAL}`);
   console.log("   Obre aquesta URL al navegador (s'hauria d'haver obert sola).");
-  console.log('   Mòbil: pestanya "Mòbil" → usa la URL/QR dins la mateixa Wi-Fi.\n');
+  console.log('   Mòbil: pestanya "Mòbil" → usa la URL/QR dins la mateixa Wi-Fi.');
+  if (process.env.QUINAPP_HTTPS !== '0') {
+    console.log(`   Càmera del mòbil (escàner): HTTPS al port ${process.env.HTTPS_PORT || 3443} (cert autosignat).`);
+  }
+  console.log('');
   if (!process.env.QUINAPP_NO_OPEN) openBrowser(LOCAL);
 } else {
   console.error("⚠️  No s'ha pogut confirmar el health del servidor. Obre " + LOCAL + ' manualment.');
