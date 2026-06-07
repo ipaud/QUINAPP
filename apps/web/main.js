@@ -544,46 +544,60 @@ async function ensureSpotifyPlayer() {
     setSpotifySdkStatus('connecta Spotify primer');
     return false;
   }
-  if (spotifyPlayback.player && spotifyPlayback.ready) return true;
+  if (spotifyPlayback.player && spotifyPlayback.ready && spotifyPlayback.deviceId) return true;
   try {
     setSpotifySdkStatus('carregant...');
     await loadSpotifySdk();
     const token = await spotifyGetValidToken();
     if (!token) throw new Error('Spotify no connectat');
 
-    spotifyPlayback.player = new window.Spotify.Player({
-      name: 'QUINAPP Locutor',
-      getOAuthToken: async (cb) => {
-        const tk = await spotifyGetValidToken();
-        cb(tk || '');
-      },
-      volume: spotifyPlayback.volume,
-    });
+    if (!spotifyPlayback.player) {
+      let resolveReady;
+      spotifyPlayback.readyPromise = new Promise((r) => { resolveReady = r; });
 
-    spotifyPlayback.player.addListener('ready', ({ device_id }) => {
-      spotifyPlayback.deviceId = device_id;
-      spotifyPlayback.ready = true;
-      setSpotifySdkStatus('a punt');
-    });
-    spotifyPlayback.player.addListener('not_ready', () => {
-      spotifyPlayback.ready = false;
-      setSpotifySdkStatus('dispositiu no disponible');
-    });
-    spotifyPlayback.player.addListener('player_state_changed', (s) => {
-      spotifyPlayback.paused = Boolean(s?.paused ?? true);
-      if (els.spotifyToggle) els.spotifyToggle.textContent = spotifyPlayback.paused ? '▶' : '⏸';
-      if (els.spotifySeek && s?.duration) {
-        const ratio = Math.max(0, Math.min(1, Number(s.position || 0) / Number(s.duration)));
-        els.spotifySeek.value = String(Math.floor(ratio * 1000));
-      }
-    });
-    spotifyPlayback.player.addListener('initialization_error', ({ message }) => setSpotifySdkStatus(`error init (${message})`));
-    spotifyPlayback.player.addListener('authentication_error', ({ message }) => setSpotifySdkStatus(`error auth (${message})`));
-    spotifyPlayback.player.addListener('account_error', ({ message }) => setSpotifySdkStatus(`cal Spotify Premium (${message})`));
+      spotifyPlayback.player = new window.Spotify.Player({
+        name: 'QUINAPP',
+        getOAuthToken: async (cb) => {
+          const tk = await spotifyGetValidToken();
+          cb(tk || '');
+        },
+        volume: spotifyPlayback.volume,
+      });
 
-    const ok = await spotifyPlayback.player.connect();
-    if (!ok) throw new Error('No es pot connectar el SDK de Spotify');
-    return true;
+      spotifyPlayback.player.addListener('ready', ({ device_id }) => {
+        spotifyPlayback.deviceId = device_id;
+        spotifyPlayback.ready = true;
+        setSpotifySdkStatus('a punt');
+        resolveReady(device_id);
+      });
+      spotifyPlayback.player.addListener('not_ready', () => {
+        spotifyPlayback.ready = false;
+        setSpotifySdkStatus('dispositiu no disponible');
+      });
+      spotifyPlayback.player.addListener('player_state_changed', (s) => {
+        spotifyPlayback.paused = Boolean(s?.paused ?? true);
+        if (els.spotifyToggle) els.spotifyToggle.textContent = spotifyPlayback.paused ? '▶' : '⏸';
+        if (els.spotifySeek && s?.duration) {
+          const ratio = Math.max(0, Math.min(1, Number(s.position || 0) / Number(s.duration)));
+          els.spotifySeek.value = String(Math.floor(ratio * 1000));
+        }
+      });
+      spotifyPlayback.player.addListener('initialization_error', ({ message }) => setSpotifySdkStatus(`error init (${message})`));
+      spotifyPlayback.player.addListener('authentication_error', ({ message }) => setSpotifySdkStatus(`error auth (${message})`));
+      spotifyPlayback.player.addListener('account_error', ({ message }) => setSpotifySdkStatus(`cal Spotify Premium (${message})`));
+
+      const ok = await spotifyPlayback.player.connect();
+      if (!ok) throw new Error('No es pot connectar el SDK de Spotify');
+    }
+
+    // Espera que el dispositiu SDK estigui registrat (event 'ready') abans de tornar.
+    if (!spotifyPlayback.deviceId && spotifyPlayback.readyPromise) {
+      await Promise.race([
+        spotifyPlayback.readyPromise,
+        new Promise((r) => setTimeout(r, 8000)),
+      ]);
+    }
+    return Boolean(spotifyPlayback.deviceId);
   } catch (error) {
     setSpotifySdkStatus(`fallback embed (${error.message})`);
     return false;
@@ -598,6 +612,23 @@ async function spotifyTransferToSdkDevice(play = false) {
   });
 }
 
+// Espera fins que el dispositiu SDK aparegui a la llista de dispositius de Spotify.
+// El backend de Spotify triga uns ms a registrar el dispositiu després de connectar,
+// i si no hi és la crida de play retorna 404 "Device not found".
+async function waitForSpotifyDevice(timeoutMs = 6000) {
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    if (spotifyPlayback.deviceId) {
+      try {
+        const data = await spotifyApi('/me/player/devices');
+        if (data?.devices?.some((d) => d.id === spotifyPlayback.deviceId)) return true;
+      } catch {}
+    }
+    await new Promise((r) => setTimeout(r, 400));
+  }
+  return Boolean(spotifyPlayback.deviceId);
+}
+
 async function spotifyPlaySong(song, forceAutoplay = false) {
   const trackId = getSpotifyTrackId(song);
   if (!trackId) {
@@ -610,13 +641,27 @@ async function spotifyPlaySong(song, forceAutoplay = false) {
     updateSpotifyPlayer(song, wantAuto);
     return;
   }
+  await waitForSpotifyDevice();
+  const deviceId = spotifyPlayback.deviceId;
+  const play = () => spotifyApi(`/me/player/play?device_id=${encodeURIComponent(deviceId)}`, {
+    method: 'PUT',
+    body: { uris: [`spotify:track:${trackId}`] },
+  });
   try {
-    await spotifyTransferToSdkDevice(wantAuto);
-    await spotifyApi(`/me/player/play?device_id=${encodeURIComponent(spotifyPlayback.deviceId)}`, {
-      method: 'PUT',
-      body: { uris: [`spotify:track:${trackId}`] },
-    });
+    try {
+      await play();
+    } catch (err) {
+      // Si el dispositiu encara no estava actiu: transfereix-hi i reintenta un cop.
+      if (/not found|404|no active device/i.test(String(err.message))) {
+        await spotifyTransferToSdkDevice(true);
+        await new Promise((r) => setTimeout(r, 700));
+        await play();
+      } else {
+        throw err;
+      }
+    }
     if (!wantAuto) await spotifyPlayback.player.pause();
+    setSpotifySdkStatus('a punt');
     updateSpotifyPlayer(song, wantAuto);
   } catch (error) {
     setSpotifySdkStatus(`fallback embed (${error.message})`);
