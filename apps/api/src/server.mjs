@@ -628,7 +628,7 @@ function renderValidateBatchHtml(nonce) {
       }
       await new Promise((resolve, reject) => {
         const s = document.createElement('script');
-        s.src = 'https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js';
+        s.src = '/vendor/jsQR.js';
         s.async = true;
         s.onload = resolve;
         s.onerror = () => reject(new Error('No es pot carregar la llibreria QR'));
