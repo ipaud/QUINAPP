@@ -946,3 +946,18 @@ body.advanced #wizard { display: none; }
   .wiz-step-dot { font-size: 0; gap: 0; }
   .wiz-song-row { grid-template-columns: 1fr 1fr auto; }
 }
+
+/* ── Botó Spotify ── */
+.btn-spotify {
+  background: #1db954;
+  color: #fff;
+  border: var(--border);
+  box-shadow: var(--shadow-sm);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+.btn-spotify:hover { background: #1ed760; filter: none; }
+.btn-spotify:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 #0d0d0d; }
+.btn-spotify .spotify-ico { flex-shrink: 0; }

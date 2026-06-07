@@ -2001,12 +2001,18 @@ document.addEventListener('keydown', (event) => {
       W.spotStatus.classList.toggle('ok', connected);
     }
     if (W.next1) W.next1.disabled = !connected;
-    if (W.clientIdWrap) W.clientIdWrap.hidden = Boolean(currentSpotifyClientId());
   }
   W.spotConnect?.addEventListener('click', async () => {
     try {
-      const cid = (W.clientId?.value || '').trim();
-      if (cid) lsSet(SPOT_KEYS.clientId, cid);
+      const cid = (W.clientId?.value || '').trim() || currentSpotifyClientId();
+      if (!cid) {
+        // Cap Client ID configurat: revela el camp un sol cop en lloc de fallar.
+        if (W.clientIdWrap) { W.clientIdWrap.hidden = false; W.clientIdWrap.open = true; }
+        W.clientId?.focus();
+        showToast('Configura el Client ID de Spotify (un sol cop) o arrenca amb SPOTIFY_CLIENT_ID', 'info');
+        return;
+      }
+      if ((W.clientId?.value || '').trim()) lsSet(SPOT_KEYS.clientId, cid);
       lsSet(RESUME_KEY, '2');
       await spotifyStartLogin();
     } catch (e) { showToast(e.message, 'error'); }
