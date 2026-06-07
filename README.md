@@ -7,7 +7,7 @@
 Generació de cartons, sorteig de cançons en temps real, reproducció amb Spotify,
 exportació de PDF amb QR signats i validació des de l'iPhone.
 
-![Configurar sessió](docs/screenshots/01-setup.png)
+![Assistent guiat](docs/screenshots/00-wizard.png)
 
 </div>
 
