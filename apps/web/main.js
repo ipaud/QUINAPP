@@ -2314,12 +2314,19 @@ document.addEventListener('keydown', (event) => {
   });
   W.check?.addEventListener('click', async () => {
     try {
-      const cfg = await fetchNetworkConfig();
-      const base = cfg.selectedUrl || pickBestPhoneUrl(cfg.urls) || location.origin;
-      const url = `${String(base).replace(/\/$/, '')}/validate-batch`;
-      const dataUrl = await makeQrDataUrl(url);
-      showQrModal('Escàner de validació de cartons', dataUrl, url);
-    } catch (e) { showToast(e.message || 'No es pot obrir l\'escàner', 'error'); }
+      // QR generat al servidor (no depèn de cap CDN, immune a adblockers).
+      const res = await fetch('/api/system/qr?path=/validate-batch');
+      const data = await res.json().catch(() => ({}));
+      if (data.qrDataUrl) {
+        showQrModal('Escàner de validació de cartons', data.qrDataUrl, data.url);
+        return;
+      }
+      window.open(data.url || `${location.origin}/validate-batch`, '_blank');
+      showToast('Escàner obert en una pestanya nova', 'info');
+    } catch {
+      window.open(`${location.origin}/validate-batch`, '_blank');
+      showToast('Escàner obert en una pestanya nova', 'info');
+    }
   });
   W.restart?.addEventListener('click', () => {
     wstate.songs = []; wstate.pin = null;

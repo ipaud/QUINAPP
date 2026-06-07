@@ -1591,6 +1591,27 @@ const server = http.createServer(async (req, res) => {
         return;
       }
 
+      // QR del path indicat, generat al servidor (sense dependre de CDN/adblock).
+      if (req.method === 'GET' && pathname === '/api/system/qr') {
+        const port = Number(process.env.PORT || 3000);
+        const urls = listNetworkUrls(port);
+        const base = process.env.PUBLIC_BASE_URL || urls.find((u) => !u.includes('127.0.0.1') && !u.includes('localhost')) || urls[0] || '';
+        let path = String(url.searchParams.get('path') || '/');
+        if (!path.startsWith('/')) path = `/${path}`;
+        const target = `${String(base).replace(/\/$/, '')}${path}`;
+        let qrDataUrl = '';
+        try {
+          qrDataUrl = await QRCode.toDataURL(target, {
+            errorCorrectionLevel: 'M', margin: 1, width: 320,
+            color: { dark: '#000000', light: '#FFFFFF' },
+          });
+        } catch {
+          qrDataUrl = '';
+        }
+        json(res, 200, { url: target, qrDataUrl });
+        return;
+      }
+
       if (req.method === 'GET' && pathname === '/api/system/health') {
         json(res, 200, {
           ok: true,
