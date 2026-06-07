@@ -2,10 +2,11 @@
 
 # 🎵 QUINAPP
 
-**Quina musical (bingo de cançons) per a esdeveniments — app d'escriptori per a macOS.**
+**Quina musical (bingo de cançons) per a esdeveniments — multiplataforma (navegador) i amb assistent guiat.**
 
-Generació de cartons, sorteig de cançons en temps real, reproducció amb Spotify,
-exportació de PDF amb QR signats i validació des de l'iPhone.
+Connecta amb Spotify, importa una playlist, genera cartons en PDF amb QR signats,
+sorteja en directe amb reproducció automàtica (fragments de 30 s) i valida els cartons
+guanyadors escanejant el QR des del mòbil.
 
 ![Assistent guiat](docs/screenshots/00-wizard.png)
 
@@ -41,39 +42,45 @@ En els dos casos el servidor també serveix la interfície per al mòbil dins la
 
 ## Característiques
 
+- 🧭 **Assistent guiat de 5 passos** (vista per defecte): Spotify → Playlist → Cançons → Cartons → Jugar.
+  Pensat per a usuaris sense coneixements tècnics. Botó **Mode avançat** per a la consola d'operador.
+- 🎧 **Spotify integrat** — login amb **popup de consentiment** (PKCE, Client ID incrustat; l'usuari no
+  escriu res), import de playlists i reproducció dins el navegador (Web Playback SDK, requereix Premium).
+- ▶️ **Reproducció automàtica** en sortejar, amb mode **fragment de 30 s** opcional que comença per la
+  part reconeixible (≈1/3 de la cançó, sol coincidir amb la tornada).
 - 🎲 **Sorteig determinista i reproduïble** — basat en *seed*; mateixa seed → mateix ordre.
-- 📡 **Temps real (SSE)** — locutor, cartons i pantalles de jugador sincronitzats a l'instant.
-- 🃏 **Generació de cartons** sense duplicats, mida configurable (files × columnes).
+- 📡 **Temps real (SSE)** — locutor, pantalla de joc i pàgines de jugador sincronitzats a l'instant.
+- 🃏 **Generació de cartons** sense duplicats, mida configurable (files × columnes), PIN automàtic.
 - 📄 **PDF Pro** — A4 (2 per pàgina) o A5, predefinits (esdeveniment / impremta / estalvi tinta),
   cada cartó amb **QR signat (HMAC SHA-256)**.
-- 📱 **Validació des de l'iPhone** — escaneja el QR i comprova el cartó contra les cançons sonades.
-- 🎧 **Spotify** — login PKCE des de la UI, reproductor embegut i Web Playback SDK.
+- 📱 **Validació des del mòbil** — escàner per lots (`/validate-batch`) amb so/vibració, fallback de
+  **foto** i descodificació **jsQR servida local** (immune a adblockers).
 - 📥 **Importadors** — CSV, XLSX i llistes de YouTube/Spotify.
-- 🔗 **Vistes amb deep-link** — cada pestanya té el seu `#hash`; `?load=PIN` obre una sessió directament.
+- 🔗 **Deep-links** — cada pestanya té `#hash`; `?load=PIN` carrega una sessió; `?mode=advanced` obre la consola.
 - ♿ **Accessibilitat** — focus visible, `aria-live`, navegació per teclat, `prefers-reduced-motion`.
 - 🔒 **Seguretat** — CSP amb *nonce*, secret QR per instal·lació, rate-limit i validació estricta.
+- 🌐 **Multiplataforma** — un sol servidor Node serveix tot; corre a macOS, Windows i Linux.
 
 ## Arquitectura
 
 ```
-┌────────────────────────────────────────────────────────────┐
-│  Electron (finestra escriptori)                            │
-│   └─ carrega http://127.0.0.1:3000                         │
-│   └─ arrenca servidor embegut + watchdog de health         │
-└──────────────────────────┬─────────────────────────────────┘
+  Navegador (npm start)         o   Electron (npm run start:desktop, opcional)
+        │                                     │
+        └──────────────► http://127.0.0.1:3000 ◄───────────┘
                            │
-        ┌──────────────────▼───────────────────┐
-        │  apps/api  (Node http, sense framework)│
-        │   ├─ REST + SSE realtime               │
-        │   ├─ SQLite (better-sqlite3, WAL)      │
-        │   ├─ PDF (pdf-lib) + QR (qrcode)       │
-        │   └─ pàgines mòbil (validate / play)   │
-        └──────────────────┬───────────────────┘
+        ┌──────────────────▼────────────────────┐
+        │  apps/api  (Node http, sense framework) │
+        │   ├─ REST + SSE realtime                │
+        │   ├─ SQLite (better-sqlite3, WAL)       │
+        │   ├─ PDF (pdf-lib) + QR (qrcode)        │
+        │   └─ pàgines mòbil (validate / play)    │
+        └──────────────────┬────────────────────┘
                            │  serveix
-        ┌──────────────────▼───────────────────┐
-        │  apps/web  (HTML/CSS/JS vanilla)       │
-        │   4 pestanyes: Sessió·Locutor·Joc·Mòbil│
-        └────────────────────────────────────────┘
+        ┌──────────────────▼────────────────────┐
+        │  apps/web  (HTML/CSS/JS vanilla)        │
+        │   Assistent (5 passos)  +  Mode avançat │
+        │   (Sessió · Locutor · Joc · Mòbil)      │
+        └─────────────────────────────────────────┘
 
  packages/core → lògica pura de bingo (determinista, testejable)
 ```
@@ -82,8 +89,8 @@ En els dos casos el servidor també serveix la interfície per al mòbil dins la
 |---|---|
 | [`packages/core`](packages/core) | Lògica pura: parseig de cançons, generació de cartons, RNG amb seed, comprovació de línies. |
 | [`apps/api`](apps/api) | Servidor HTTP, SQLite, SSE, PDF, QR, importadors, pàgines servides al mòbil. |
-| [`apps/web`](apps/web) | Client d'escriptori (les 4 pestanyes de la UI). |
-| [`electron`](electron) | Embolcall d'escriptori: arrenca el servidor, watchdog, finestra. |
+| [`apps/web`](apps/web) | Client web: assistent de 5 passos + mode avançat (4 pestanyes); `vendor/jsQR.js`. |
+| [`electron`](electron) | Embolcall d'escriptori **opcional**: arrenca el servidor, watchdog, finestra. |
 | [`data`](data) | SQLite local + secret QR (ignorats per git). |
 
 ## Requisits
@@ -140,11 +147,15 @@ local; els més rellevants:
 
 La primera pantalla és un **assistent** pensat per a qualsevol usuari:
 
-1. **Spotify** — connecta amb el teu compte (o «Ho faré manualment»).
-2. **Playlist** — enganxa l'enllaç d'una llista de reproducció i importa les cançons.
-3. **Cançons** — revisa, edita o esborra (mínim 15 per a cartons de 3×5).
-4. **Cartons** — tria quants i prem **Generar cartons i PDF** (s'assigna un PIN automàtic).
-5. **Jugar** — **▶ Següent cançó** i a sortejar.
+1. **Spotify** — botó verd que obre el **popup de consentiment** (o «Ho faré manualment»).
+2. **Playlist** — enganxa l'enllaç d'una llista (Spotify/YouTube) i importa les cançons.
+3. **Cançons** — llista editable: afegeix, edita o esborra (mínim 15 per a cartons de 3×5).
+4. **Cartons** — tria quants i prem **Generar cartons i PDF**; s'assigna un **PIN automàtic** de la partida.
+5. **Jugar** — **▶ Següent cançó** (amb autoplay), **Sonant ara** + **Següent** + **historial**,
+   ⏯ reproduir/pausar, toggle **fragment de 30 s**, **Compartir QR** (connexió mòbil) i
+   **✅ Comprovar cartó** (obre un QR cap a l'escàner de validació). Botó **Nova quina** per recomençar.
+
+> L'estat de l'assistent es desa al navegador: si recarregues a mig flux, recupera el pas i les dades.
 
 > 🎧 **Spotify (configuració única).** Com qualsevol app amb «Entra amb Spotify», QUINAPP
 > necessita **una** app de Spotify registrada; el seu *Client ID* (que **no** és secret en
@@ -158,6 +169,25 @@ La primera pantalla és un **assistent** pensat per a qualsevol usuari:
 > El botó verd obre una **finestra nova** de login/consentiment i torna sol a l'assistent.
 > Sense configurar res, el primer clic mostra un camp per posar el Client ID un sol cop.
 > Sense Spotify, fes servir «Ho faré manualment» i escriu/importa les cançons.
+
+### Reproducció (Spotify Web Playback SDK)
+
+- En sortejar, la cançó **sona sola** dins el navegador. Requereix **compte Premium**
+  (limitació de Spotify per al SDK). Sense Premium, l'estat ho indica i pots reproduir
+  des de l'app de Spotify manualment.
+- El reproductor s'inicialitza en entrar al pas «Jugar» i la reproducció espera que el
+  dispositiu SDK estigui registrat (evita l'error «Device not found»).
+- **Fragment de 30 s** (per defecte actiu): comença a ≈1/3 de la cançó i pausa als 30 s,
+  com una preview. Es pot desactivar per sentir la cançó sencera.
+
+### Validació de cartons (mòbil)
+
+- Des del pas «Jugar», **✅ Comprovar cartó** mostra un QR cap a `/validate-batch`, l'escàner
+  continu. Obre'l al mòbil (mateixa Wi-Fi) per validar els cartons dels jugadors.
+- L'escàner descodifica amb **jsQR servit local** (`/vendor/jsQR.js`) → funciona encara que
+  un adblocker bloquegi CDNs.
+- La **càmera en directe** requereix context segur (HTTPS o localhost); per LAN sobre HTTP,
+  usa el botó **«Foto QR»** (fer una foto del QR), que sí funciona.
 
 ### Mode avançat
 
@@ -187,7 +217,10 @@ POST   /api/sessions/:pin/reset-round     nova tanda (admin)
 DELETE /api/sessions/:pin                 esborrar sessió (admin)
 GET    /api/validate-card?d=..&s=..       validar QR signat
 POST   /api/tools/parse-csv | parse-xlsx | import-playlist | analyze-songs
+GET    /api/tools/spotify-config          Client ID de Spotify (si està configurat)
 GET    /api/system/network | health       xarxa / health
+GET    /api/system/qr?path=/validate-batch QR (server-side) d'un path, sense CDN
+POST   /api/system/probe                  prova de connexió (només LAN)
 ```
 
 Pàgines HTML per al mòbil: `/play-card`, `/validate-card`, `/validate-batch`.
@@ -197,8 +230,8 @@ Pàgines HTML per al mòbil: `/play-card`, `/validate-card`, `/validate-batch`.
 - Cada cartó del PDF porta un **QR individual signat amb HMAC SHA-256**.
 - El QR apunta a `/validate-card?d=<payload>&s=<firma>`; la validació és **dinàmica**
   contra les cançons ja sonades de la sessió.
-- `/validate-batch` permet escanejar molts QR seguits amb la càmera (detector natiu o
-  *fallback* jsQR), amb so/vibració i exportació CSV.
+- `/validate-batch` permet escanejar molts QR seguits: càmera en directe (detector natiu o
+  **jsQR servit local**) o **foto del QR**, amb so/vibració i exportació CSV.
 
 ## Seguretat
 
@@ -227,10 +260,10 @@ npm test                  # unit + integració (requereix better-sqlite3 per al 
 QUINAPP/
 ├─ apps/
 │  ├─ api/   servidor (server.mjs, data/, lib/, assets/fonts)
-│  └─ web/   client escriptori (index.html, main.js, styles.css)
+│  └─ web/   client (index.html, main.js, styles.css, vendor/jsQR.js)
 ├─ packages/core/   lògica de bingo (pura)
-├─ electron/        embolcall d'escriptori
-├─ scripts/         utilitats dev/legacy
+├─ electron/        embolcall d'escriptori (opcional)
+├─ scripts/         start.mjs (llançador multiplataforma) + utilitats
 ├─ tests/           unit + integració
 ├─ data/            SQLite + secret QR (git-ignored)
 └─ docs/screenshots/
