@@ -109,6 +109,17 @@ npm start              # arrenca el servidor i obre el navegador
   - Windows (PowerShell): `$env:SPOTIFY_CLIENT_ID="EL_TEU_ID"; npm start`
 - No vols que obri el navegador sol? `QUINAPP_NO_OPEN=1 npm start`.
 
+#### Accés directe al Desktop (macOS)
+
+Per a usuaris no tècnics, crea un **`QUINAPP.app`** que arrenca el servidor i obre el
+navegador amb un doble clic (sense terminal):
+
+```bash
+SPOTIFY_CLIENT_ID=EL_TEU_ID npm run app:macos   # (el Client ID és opcional)
+```
+
+Apareix `QUINAPP.app` al Desktop amb la icona de l'app. Doble clic → llest.
+
 ### App d'escriptori (opcional, macOS)
 
 ```bash

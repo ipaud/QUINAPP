@@ -8,6 +8,7 @@
     "start": "node scripts/start.mjs",
     "dev": "node scripts/start.mjs",
     "start:desktop": "npm run electron:dev",
+    "app:macos": "bash scripts/make-macos-app.sh",
     "serve": "node apps/api/src/server.mjs",
     "api:dev": "node apps/api/src/server.mjs",
     "test:unit": "node tests/unit.mjs",
