@@ -740,7 +740,7 @@ function renderValidateBatchHtml(nonce) {
         item.hidden = !ok;
         if(ok) shown += 1;
       }
-      summaryEl.textContent = shown + ' visibles / ' + all.length + ' totales';
+      summaryEl.textContent = shown + ' visibles / ' + all.length + ' totals';
     }
     function csvEscape(value){
       const text = String(value ?? '');

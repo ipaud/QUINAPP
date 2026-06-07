@@ -1958,13 +1958,20 @@ document.addEventListener('keydown', (event) => {
     counter: document.getElementById('wizCounter'),
     openConsole: document.getElementById('wizOpenConsole'),
     restart: document.getElementById('wizRestart'),
+    share: document.getElementById('wizShare'),
   };
   if (!W.section) return;
 
   const MODE_KEY = 'qm_mode';
   const RESUME_KEY = 'qm_wiz_resume';
+  const STATE_KEY = 'qm_wiz_state';
   const MIN_SONGS = 15; // 3×5 per defecte
   const wstate = { songs: [], pin: null };
+  let curStep = 1;
+
+  function saveWiz() {
+    try { lsSet(STATE_KEY, JSON.stringify({ songs: wstate.songs, pin: wstate.pin, step: curStep })); } catch {}
+  }
 
   function setMode(advanced) {
     document.body.classList.toggle('advanced', advanced);
@@ -1972,15 +1979,18 @@ document.addEventListener('keydown', (event) => {
     if (W.modeToggle) W.modeToggle.textContent = advanced ? 'Assistent' : 'Mode avançat';
   }
   W.modeToggle?.addEventListener('click', () => setMode(!document.body.classList.contains('advanced')));
-  setMode(lsGet(MODE_KEY) === 'advanced');
+  setMode(lsGet(MODE_KEY) === 'advanced'
+    || new URLSearchParams(location.search).get('mode') === 'advanced');
 
   function showStep(n) {
+    curStep = n;
     W.panels.forEach((p) => { p.hidden = Number(p.dataset.wiz) !== n; });
     W.dots.forEach((d) => {
       const s = Number(d.dataset.step);
       d.classList.toggle('active', s === n);
       d.classList.toggle('done', s < n);
     });
+    saveWiz();
   }
 
   // Pas 1 — Spotify
@@ -2023,6 +2033,7 @@ document.addEventListener('keydown', (event) => {
       wstate.songs = parsed.songs.map((s) => ({ artist: s.artist || '', title: s.title || '' }));
       if (W.importStatus) W.importStatus.textContent = `${parsed.songs.length} cançons importades.`;
       if (W.next2) W.next2.disabled = false;
+      saveWiz();
     } catch (e) { showToast(e.message, 'error'); }
   });
   W.next2?.addEventListener('click', () => { renderSongs(); showStep(3); });
@@ -2038,6 +2049,7 @@ document.addEventListener('keydown', (event) => {
       W.songCount.classList.toggle('bad', n < MIN_SONGS);
     }
     if (W.next3) W.next3.disabled = n < MIN_SONGS;
+    saveWiz();
   }
   function renderSongs() {
     if (!W.songList) return;
@@ -2084,6 +2096,7 @@ document.addEventListener('keydown', (event) => {
     const count = Math.max(1, Math.min(200, Number(W.count?.value || 20)));
     await api(`/api/sessions/${encodeURIComponent(pin)}/cards`, { method: 'POST', body: { count } });
     wstate.pin = pin;
+    saveWiz();
     await hydrateSession(pin);
     await downloadWizPdf();
     if (W.pinOut) W.pinOut.textContent = pin;
@@ -2103,8 +2116,17 @@ document.addEventListener('keydown', (event) => {
   // Pas 5 — jugar
   W.drawNext?.addEventListener('click', () => els.drawNext?.click());
   W.openConsole?.addEventListener('click', () => { setMode(true); switchTab('locutor'); });
+  W.share?.addEventListener('click', async () => {
+    try {
+      const cfg = await fetchNetworkConfig();
+      const url = cfg.selectedUrl || pickBestPhoneUrl(cfg.urls);
+      if (!cfg.qrDataUrl || !url) throw new Error('No hi ha URL de xarxa disponible');
+      showQrModal(`Connexió mòbil${wstate.pin ? ` · PIN ${wstate.pin}` : ''}`, cfg.qrDataUrl, url);
+    } catch (e) { showToast(e.message, 'error'); }
+  });
   W.restart?.addEventListener('click', () => {
     wstate.songs = []; wstate.pin = null;
+    lsDel(STATE_KEY);
     if (W.importStatus) W.importStatus.textContent = '';
     if (W.genResult) W.genResult.hidden = true;
     if (W.next2) W.next2.disabled = true;
@@ -2143,7 +2165,29 @@ document.addEventListener('keydown', (event) => {
     }
   };
 
-  refreshSpotifyStep();
-  showStep(1);
+  // Restaura l'estat del wizard si l'usuari recarrega a mig flux.
+  (function restoreWiz() {
+    refreshSpotifyStep();
+    let saved = null;
+    try { saved = JSON.parse(lsGet(STATE_KEY) || 'null'); } catch {}
+    if (saved && (saved.songs?.length || saved.pin)) {
+      wstate.songs = Array.isArray(saved.songs) ? saved.songs : [];
+      wstate.pin = saved.pin || null;
+      if (wstate.songs.length) {
+        renderSongs();
+        if (W.importStatus) W.importStatus.textContent = `${wstate.songs.length} cançons.`;
+        if (W.next2) W.next2.disabled = false;
+      }
+      if (wstate.pin) {
+        if (W.pinOut) W.pinOut.textContent = wstate.pin;
+        if (W.genResult) W.genResult.hidden = false;
+        if (W.next4) W.next4.disabled = false;
+        hydrateSession(wstate.pin).catch(() => {});
+      }
+      showStep(Math.min(5, Math.max(1, Number(saved.step) || 1)));
+    } else {
+      showStep(1);
+    }
+  })();
   setInterval(refreshSpotifyStep, 2500);
 })();
