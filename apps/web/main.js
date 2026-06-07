@@ -356,6 +356,28 @@ async function withBusy(btn, busyText, fn) {
   }
 }
 
+// Carrega la lib QRCode (CDN) sota demanda i genera un data-URL.
+async function ensureQRCode() {
+  if (typeof QRCode !== 'undefined') return;
+  await new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js';
+    s.onload = resolve;
+    s.onerror = reject;
+    document.head.appendChild(s);
+  });
+}
+
+async function makeQrDataUrl(url, width = 280) {
+  await ensureQRCode();
+  return QRCode.toDataURL(url, {
+    errorCorrectionLevel: 'M',
+    margin: 1,
+    width,
+    color: { dark: '#000000', light: '#FFFFFF' },
+  });
+}
+
 function applyPdfPreset(preset) {
   if (!els.pdfShowMeta || !els.pdfHighContrast) return;
   if (preset === 'imprenta') {
@@ -2077,6 +2099,7 @@ document.addEventListener('keydown', (event) => {
     nextSong: document.getElementById('wizNextSong'),
     togglePlay: document.getElementById('wizTogglePlay'),
     snippet: document.getElementById('wizSnippet'),
+    check: document.getElementById('wizCheck'),
     history: document.getElementById('wizHistory'),
     spotifyHint: document.getElementById('wizSpotifyHint'),
     openConsole: document.getElementById('wizOpenConsole'),
@@ -2288,6 +2311,15 @@ document.addEventListener('keydown', (event) => {
       if (!cfg.qrDataUrl || !url) throw new Error('No hi ha URL de xarxa disponible');
       showQrModal(`Connexió mòbil${wstate.pin ? ` · PIN ${wstate.pin}` : ''}`, cfg.qrDataUrl, url);
     } catch (e) { showToast(e.message, 'error'); }
+  });
+  W.check?.addEventListener('click', async () => {
+    try {
+      const cfg = await fetchNetworkConfig();
+      const base = cfg.selectedUrl || pickBestPhoneUrl(cfg.urls) || location.origin;
+      const url = `${String(base).replace(/\/$/, '')}/validate-batch`;
+      const dataUrl = await makeQrDataUrl(url);
+      showQrModal('Escàner de validació de cartons', dataUrl, url);
+    } catch (e) { showToast(e.message || 'No es pot obrir l\'escàner', 'error'); }
   });
   W.restart?.addEventListener('click', () => {
     wstate.songs = []; wstate.pin = null;
