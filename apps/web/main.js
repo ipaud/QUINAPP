@@ -335,7 +335,7 @@ function downloadBlob(blob, name) {
 // Run an async action while showing a busy state on its trigger button.
 async function withBusy(btn, busyText, fn) {
   if (!btn) return fn();
-  const prevText = btn.textContent;
+  const prevHtml = btn.innerHTML; // preserva icones/SVG dins el botó
   const prevDisabled = btn.disabled;
   btn.disabled = true;
   btn.setAttribute('aria-busy', 'true');
@@ -345,7 +345,7 @@ async function withBusy(btn, busyText, fn) {
   } finally {
     btn.disabled = prevDisabled;
     btn.removeAttribute('aria-busy');
-    btn.textContent = prevText;
+    btn.innerHTML = prevHtml;
   }
 }
 
