@@ -154,7 +154,7 @@ try {
   const batchView = await fetch(`${BASE}/validate-batch`);
   assert.equal(batchView.status, 200);
   const batchHtml = await batchView.text();
-  assert.ok(batchHtml.includes('Escaneo en lote'));
+  assert.ok(batchHtml.includes('Escaneig per lots'));
 
   const cardPdfRes = await api(`/api/sessions/TEST1/cards/${cards.cards[0].id}/pdf`);
   const arr = await cardPdfRes.arrayBuffer();

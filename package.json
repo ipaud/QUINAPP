@@ -10,7 +10,6 @@
     "start:desktop": "npm run electron:dev",
     "app:macos": "bash scripts/make-macos-app.sh",
     "serve": "node apps/api/src/server.mjs",
-    "api:dev": "node apps/api/src/server.mjs",
     "test:unit": "node tests/unit.mjs",
     "test:integration": "node tests/integration.mjs",
     "test": "npm run test:unit && npm run test:integration",

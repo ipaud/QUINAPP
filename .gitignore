@@ -10,7 +10,6 @@ QUINAPP.app/
 
 # Runtime pid/log files
 .quinapp-*.pid
-.quinapp-dev.log
 
 # Local SQLite database + per-install QR secret + self-signed TLS cert
 data/*.db

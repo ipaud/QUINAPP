@@ -397,26 +397,12 @@ async function withBusy(btn, busyText, fn) {
   }
 }
 
-// Carrega la lib QRCode (CDN) sota demanda i genera un data-URL.
-async function ensureQRCode() {
-  if (typeof QRCode !== 'undefined') return;
-  await new Promise((resolve, reject) => {
-    const s = document.createElement('script');
-    s.src = 'https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js';
-    s.onload = resolve;
-    s.onerror = reject;
-    document.head.appendChild(s);
-  });
-}
-
-async function makeQrDataUrl(url, width = 280) {
-  await ensureQRCode();
-  return QRCode.toDataURL(url, {
-    errorCorrectionLevel: 'M',
-    margin: 1,
-    width,
-    color: { dark: '#000000', light: '#FFFFFF' },
-  });
+// QR generat al servidor per a un path de l'app (sense CDN/adblock). Retorna
+// { url, qrDataUrl } amb la URL LAN, perquè el QR sigui escanejable des del mòbil.
+async function serverQr(path) {
+  const res = await fetch('/api/system/qr?path=' + encodeURIComponent(path));
+  const data = await res.json().catch(() => ({}));
+  return data;
 }
 
 function applyPdfPreset(preset) {
@@ -996,24 +982,13 @@ async function renderCardsList() {
 
   els.cardsList.innerHTML = '';
   for (const card of state.cards) {
-    const playUrl = `${location.origin}/play-card?pin=${encodeURIComponent(state.session.pin)}&card=${encodeURIComponent(card.id)}`;
+    const cardPath = `/play-card?pin=${encodeURIComponent(state.session.pin)}&card=${encodeURIComponent(card.id)}`;
     let qrDataUrl = '';
+    let playUrl = `${location.origin}${cardPath}`;
     try {
-      if (typeof QRCode === 'undefined') {
-        await new Promise((resolve, reject) => {
-          const script = document.createElement('script');
-          script.src = 'https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js';
-          script.onload = resolve;
-          script.onerror = reject;
-          document.head.appendChild(script);
-        });
-      }
-      qrDataUrl = await QRCode.toDataURL(playUrl, {
-        errorCorrectionLevel: 'M',
-        margin: 1,
-        width: 200,
-        color: { dark: '#000000', light: '#FFFFFF' },
-      });
+      const qr = await serverQr(cardPath); // QR del servidor → URL LAN, escanejable al mòbil
+      qrDataUrl = qr.qrDataUrl || '';
+      if (qr.url) playUrl = qr.url;
     } catch (err) {
       qrDataUrl = '';
     }
@@ -1901,25 +1876,11 @@ els.downloadCurrentPdf?.addEventListener('click', () => {
 els.showCardQr?.addEventListener('click', async () => {
   const card = activeCard();
   if (!state.session || !card) { showToast('Cal sessio i carto actiu', 'error'); return; }
-  const playUrl = `${location.origin}/play-card?pin=${encodeURIComponent(state.session.pin)}&card=${encodeURIComponent(card.id)}`;
+  const cardPath = `/play-card?pin=${encodeURIComponent(state.session.pin)}&card=${encodeURIComponent(card.id)}`;
   try {
-    // Load QRCode if not available
-    if (typeof QRCode === 'undefined') {
-      await new Promise((resolve, reject) => {
-        const script = document.createElement('script');
-        script.src = 'https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js';
-        script.onload = resolve;
-        script.onerror = reject;
-        document.head.appendChild(script);
-      });
-    }
-    const qrDataUrl = await QRCode.toDataURL(playUrl, {
-      errorCorrectionLevel: 'M',
-      margin: 1,
-      width: 300,
-      color: { dark: '#000000', light: '#FFFFFF' },
-    });
-    showQrModal(`QR Cartó #${card.number}`, qrDataUrl, playUrl);
+    const qr = await serverQr(cardPath);
+    if (!qr.qrDataUrl) throw new Error('no qr');
+    showQrModal(`QR Cartó #${card.number}`, qr.qrDataUrl, qr.url || `${location.origin}${cardPath}`);
   } catch (err) {
     showToast('Error generant el QR', 'error');
   }
