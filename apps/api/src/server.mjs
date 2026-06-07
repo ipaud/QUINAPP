@@ -77,7 +77,8 @@ function clientIp(req) {
 }
 
 // ── Security helpers ────────────────────────────────────────────────────────────
-const CDN_SCRIPTS = 'https://sdk.scdn.co https://cdn.jsdelivr.net';
+// Només l'SDK de Spotify es carrega d'un host extern; jsQR i qrcode són locals/servidor.
+const CDN_SCRIPTS = 'https://sdk.scdn.co';
 
 // Content-Security-Policy. Inline <script> in server-rendered pages is allowed only
 // via a per-response nonce, so injected markup (stored XSS) cannot execute.
@@ -576,7 +577,7 @@ function renderValidateBatchHtml(nonce) {
           <button id="photoBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 12h10"/></svg> Foto QR</button>
         </div>
         <div class="status" id="status">Estat: a punt</div>
-        <div class="label">Alternativa manual (URL del QR)</div>
+        <label class="label" for="manualInput">Alternativa manual (URL del QR)</label>
         <input id="manualInput" placeholder="Enganxa URL /validate-card?d=...&s=..." />
         <input id="photoInput" type="file" accept="image/*" capture="environment" hidden />
         <div class="controls">
@@ -585,12 +586,12 @@ function renderValidateBatchHtml(nonce) {
       </div>
       <div class="panel">
         <div class="filters">
-          <select id="filterStatus">
+          <select id="filterStatus" aria-label="Filtrar per estat">
             <option value="all">Tots</option>
             <option value="invalid">Nomes no valids</option>
             <option value="valid">Nomes valids</option>
           </select>
-          <select id="filterWindow">
+          <select id="filterWindow" aria-label="Filtrar per temps">
             <option value="all">Tot el temps</option>
             <option value="5">Ultims 5 min</option>
             <option value="15">Ultims 15 min</option>
