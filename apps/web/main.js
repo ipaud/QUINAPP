@@ -636,6 +636,25 @@ async function waitForSpotifyDevice(timeoutMs = 6000) {
   return Boolean(spotifyPlayback.deviceId);
 }
 
+// Salta a una part més reconeixible (≈1/3, sol coincidir amb la 1a tornada) i
+// retorna la posició triada perquè el fragment de 30 s hi càpiga.
+async function spotifySeekToHook() {
+  if (!spotifyPlayback.player) return 0;
+  for (let i = 0; i < 6; i += 1) {
+    let st = null;
+    try { st = await spotifyPlayback.player.getCurrentState(); } catch {}
+    const dur = Number(st?.duration || 0);
+    if (dur > 0) {
+      let start = Math.floor(dur * 0.33);
+      if (start + SNIPPET_MS > dur) start = Math.max(0, dur - SNIPPET_MS);
+      try { await spotifyPlayback.player.seek(start); } catch {}
+      return start;
+    }
+    await new Promise((r) => setTimeout(r, 250));
+  }
+  return 0;
+}
+
 async function spotifyPlaySong(song, forceAutoplay = false) {
   const trackId = getSpotifyTrackId(song);
   if (!trackId) {
@@ -670,9 +689,10 @@ async function spotifyPlaySong(song, forceAutoplay = false) {
     if (!wantAuto) await spotifyPlayback.player.pause();
     setSpotifySdkStatus('a punt');
     updateSpotifyPlayer(song, wantAuto);
-    // Mode fragment: pausa als 30 s (com la preview de Spotify free).
+    // Mode fragment: salta a la part reconeixible i pausa als 30 s.
     clearTimeout(spotifyPlayback.snippetTimer);
     if (wantAuto && snippetEnabled()) {
+      await spotifySeekToHook();
       spotifyPlayback.snippetTimer = setTimeout(() => {
         spotifyPlayback.player?.pause().catch(() => {});
       }, SNIPPET_MS);
