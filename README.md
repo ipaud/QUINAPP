@@ -42,8 +42,17 @@ Instal·ladors a la **[darrera Release](https://github.com/ipaud/QUINAPP/release
 |---|---|
 | <img src="docs/readme-icons/laptop.svg" width="16" alt=""> **macOS** (Apple Silicon) | [QUINAPP-0.1.0-arm64.dmg](https://github.com/ipaud/QUINAPP/releases/latest/download/QUINAPP-0.1.0-arm64.dmg) |
 | <img src="docs/readme-icons/monitor.svg" width="16" alt=""> **Windows** (64-bit) | [QUINAPP-0.1.0-setup.exe](https://github.com/ipaud/QUINAPP/releases/latest/download/QUINAPP-0.1.0-setup.exe) |
+| <img src="docs/readme-icons/smartphone.svg" width="16" alt=""> **Android** (client WebView) | [QUINAPP-0.1.0.apk](https://github.com/ipaud/QUINAPP/releases/latest/download/QUINAPP-0.1.0.apk) |
 
-> Builds **sense signar**: macOS → clic dret ▸ Obrir; Windows → «Més informació» ▸ «Executa igualment».
+> Builds **sense signar**: macOS → clic dret ▸ Obrir; Windows → «Més informació» ▸ «Executa igualment»; Android → activa «instal·lar d'orígens desconeguts».
+
+> <img src="docs/readme-icons/smartphone.svg" width="16" alt=""> **L'APK d'Android NO és l'app sencera.** És un **client WebView prim**: el
+> servidor (Node + SQLite) segueix corrent a l'ordinador amb `npm start`. L'APK obre
+> les pàgines de mòbil (validar cartons / jugar) connectant-se al servidor per Wi-Fi.
+> En obrir-la, introdueix l'adreça que veuràs a la pantalla de l'ordinador (p. ex.
+> `http://192.168.1.50:3000`). Equival a obrir aquesta URL al navegador del telèfon,
+> però instal·lable i amb permís de càmera per a l'escàner QR. El telèfon i l'ordinador
+> han d'estar a la **mateixa Wi-Fi**. Codi font: [`apps/android`](apps/android).
 > Els enllaços funcionen quan el [workflow de release](.github/workflows/release.yml) acaba de compilar (uns minuts després de crear el tag).
 
 ## Característiques

@@ -1,0 +1,44 @@
+name: Build APK (Android)
+
+# Compila l'APK del client WebView (apps/android) i, si és un tag v*, l'adjunta
+# a la GitHub Release. També es pot llançar manualment.
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Build debug APK
+        working-directory: apps/android
+        run: ./gradlew --no-daemon assembleDebug
+
+      - name: Rename APK
+        run: cp apps/android/app/build/outputs/apk/debug/app-debug.apk QUINAPP-0.1.0.apk
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: QUINAPP-apk
+          if-no-files-found: error
+          path: QUINAPP-0.1.0.apk
+
+      - name: Attach to release (on tag)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: QUINAPP-0.1.0.apk

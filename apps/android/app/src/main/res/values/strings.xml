@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">QUINAPP</string>
+    <string name="server_dialog_title">Servidor QUINAPP</string>
+    <string name="server_dialog_msg">Introdueix l\'adreça del servidor (la veuràs a la pantalla de l\'ordinador, p. ex. http://192.168.1.50:3000)</string>
+    <string name="menu_change_server">Canvia servidor</string>
+    <string name="menu_reload">Recarrega</string>
+    <string name="btn_ok">Connecta</string>
+    <string name="btn_cancel">Cancel·la</string>
+</resources>
