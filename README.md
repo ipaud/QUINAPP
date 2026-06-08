@@ -124,12 +124,31 @@ SPOTIFY_CLIENT_ID=EL_TEU_ID npm run app:macos   # (el Client ID és opcional)
 
 Apareix `QUINAPP.app` al Desktop amb la icona de l'app. Doble clic → llest.
 
-### App d'escriptori (opcional, macOS)
+### App d'escriptori (opcional, Electron)
 
 ```bash
 npm run start:desktop          # finestra Electron
-npm run electron:pack:mac      # genera dist/QUINAPP-<versió>-arm64.dmg
 ```
+
+### Instal·ladors (.dmg macOS · .exe Windows)
+
+```bash
+npm run electron:pack:mac      # dist/QUINAPP-<versió>-arm64.dmg   (cal macOS)
+npm run electron:pack:win      # dist/QUINAPP-<versió>-setup.exe   (cal Windows)
+```
+
+> ℹ️ Cada instal·lador s'ha de compilar **al seu sistema** (el `.exe` no es pot generar
+> de forma fiable des de Mac pel mòdul natiu i l'NSIS). Per generar-los tots dos
+> automàticament hi ha un **GitHub Action** ([.github/workflows/release.yml](.github/workflows/release.yml)):
+> crea un tag `v*` i compila el `.dmg` (runner macOS) i el `.exe` (runner Windows) i els
+> adjunta a una **GitHub Release**:
+>
+> ```bash
+> git tag v0.1.0 && git push origin v0.1.0
+> ```
+>
+> Són builds **sense signar**: a macOS, clic dret → Obrir (Gatekeeper); a Windows,
+> «Més informació» → «Executa igualment» (SmartScreen).
 
 ## Variables d'entorn
 

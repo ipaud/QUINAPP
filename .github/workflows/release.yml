@@ -1,0 +1,55 @@
+name: Build installers (dmg + exe)
+
+# Compila l'instal·lador de macOS (.dmg) i el de Windows (.exe) i, si és un tag
+# v*, els adjunta a una GitHub Release. També es pot llançar manualment.
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            builder: --mac dmg
+          - os: windows-latest
+            builder: --win nsis
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Build installer
+        run: npx electron-builder ${{ matrix.builder }} --publish never
+        env:
+          # Build sense signatura (no calen certificats Apple/Microsoft).
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: installers-${{ matrix.os }}
+          if-no-files-found: ignore
+          path: |
+            dist/*.dmg
+            dist/*.exe
+
+      - name: Attach to release (on tag)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/*.dmg
+            dist/*.exe

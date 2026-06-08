@@ -14,7 +14,8 @@
     "test:integration": "node tests/integration.mjs",
     "test": "npm run test:unit && npm run test:integration",
     "electron:dev": "env -u ELECTRON_RUN_AS_NODE electron .",
-    "electron:pack:mac": "env -u ELECTRON_RUN_AS_NODE electron-builder --mac dmg --publish never"
+    "electron:pack:mac": "env -u ELECTRON_RUN_AS_NODE electron-builder --mac dmg --publish never",
+    "electron:pack:win": "electron-builder --win nsis --publish never"
   },
   "dependencies": {
     "@fontsource/space-grotesk": "^5.2.10",
@@ -32,6 +33,9 @@
   "build": {
     "appId": "com.quinapp.desktop",
     "productName": "QUINAPP",
+    "asarUnpack": [
+      "**/*.node"
+    ],
     "files": [
       "apps/**/*",
       "packages/**/*",
@@ -46,7 +50,22 @@
         "dmg"
       ],
       "category": "public.app-category.games",
-      "icon": "build/icon.icns"
+      "icon": "build/icon.png"
+    },
+    "dmg": {
+      "artifactName": "${productName}-${version}-${arch}.${ext}"
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "build/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "artifactName": "${productName}-${version}-setup.${ext}"
     }
   }
 }
