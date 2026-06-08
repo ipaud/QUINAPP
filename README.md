@@ -34,6 +34,18 @@ En els dos casos el servidor també serveix la interfície per al mòbil dins la
 > i s'obre l'app** al navegador, sense terminal ni comandes. Ideal per a usuaris no tècnics.
 > Es genera amb `npm run app:macos` (vegeu més avall).
 
+## Descàrregues
+
+Instal·ladors a la **[darrera Release](https://github.com/ipaud/QUINAPP/releases/latest)**:
+
+| Sistema | Descàrrega |
+|---|---|
+| 🍎 **macOS** (Apple Silicon) | [QUINAPP-0.1.0-arm64.dmg](https://github.com/ipaud/QUINAPP/releases/latest/download/QUINAPP-0.1.0-arm64.dmg) |
+| 🪟 **Windows** (64-bit) | [QUINAPP-0.1.0-setup.exe](https://github.com/ipaud/QUINAPP/releases/latest/download/QUINAPP-0.1.0-setup.exe) |
+
+> Builds **sense signar**: macOS → clic dret ▸ Obrir; Windows → «Més informació» ▸ «Executa igualment».
+> Els enllaços funcionen quan el [workflow de release](.github/workflows/release.yml) acaba de compilar (uns minuts després de crear el tag).
+
 ## Característiques
 
 - 🧭 **Assistent guiat de 5 passos** (vista per defecte): Spotify → Playlist → Cançons → Cartons → Jugar.
