@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🎵 QUINAPP
+# <img src="docs/readme-icons/music.svg" width="26" alt=""> QUINAPP
 
 **Quina musical (bingo de cançons) per a esdeveniments — multiplataforma (navegador) i amb assistent guiat.**
 
@@ -24,13 +24,13 @@ guanyadors escanejant el QR amb el mòbil.
 
 Funciona de dues maneres sobre el **mateix servidor** (HTTP + SQLite):
 
-- 🌐 **Mode navegador (multiplataforma)** — `npm start` arrenca el servidor i obre el
+- <img src="docs/readme-icons/globe.svg" width="16" alt=""> **Mode navegador (multiplataforma)** — `npm start` arrenca el servidor i obre el
   navegador. Funciona a **macOS, Windows i Linux**. És el mode recomanat.
-- 🖥️ **App d'escriptori (opcional, macOS)** — embolcall Electron amb empaquetat `.dmg`.
+- <img src="docs/readme-icons/monitor.svg" width="16" alt=""> **App d'escriptori (opcional, macOS)** — embolcall Electron amb empaquetat `.dmg`.
 
 En els dos casos el servidor també serveix la interfície per al mòbil dins la mateixa Wi-Fi.
 
-> ⭐ **Accés directe (macOS):** hi ha un **`QUINAPP.app`** que ja funciona — **doble clic
+> <img src="docs/readme-icons/star.svg" width="16" alt=""> **Accés directe (macOS):** hi ha un **`QUINAPP.app`** que ja funciona — **doble clic
 > i s'obre l'app** al navegador, sense terminal ni comandes. Ideal per a usuaris no tècnics.
 > Es genera amb `npm run app:macos` (vegeu més avall).
 
@@ -40,32 +40,32 @@ Instal·ladors a la **[darrera Release](https://github.com/ipaud/QUINAPP/release
 
 | Sistema | Descàrrega |
 |---|---|
-| 🍎 **macOS** (Apple Silicon) | [QUINAPP-0.1.0-arm64.dmg](https://github.com/ipaud/QUINAPP/releases/latest/download/QUINAPP-0.1.0-arm64.dmg) |
-| 🪟 **Windows** (64-bit) | [QUINAPP-0.1.0-setup.exe](https://github.com/ipaud/QUINAPP/releases/latest/download/QUINAPP-0.1.0-setup.exe) |
+| <img src="docs/readme-icons/laptop.svg" width="16" alt=""> **macOS** (Apple Silicon) | [QUINAPP-0.1.0-arm64.dmg](https://github.com/ipaud/QUINAPP/releases/latest/download/QUINAPP-0.1.0-arm64.dmg) |
+| <img src="docs/readme-icons/monitor.svg" width="16" alt=""> **Windows** (64-bit) | [QUINAPP-0.1.0-setup.exe](https://github.com/ipaud/QUINAPP/releases/latest/download/QUINAPP-0.1.0-setup.exe) |
 
 > Builds **sense signar**: macOS → clic dret ▸ Obrir; Windows → «Més informació» ▸ «Executa igualment».
 > Els enllaços funcionen quan el [workflow de release](.github/workflows/release.yml) acaba de compilar (uns minuts després de crear el tag).
 
 ## Característiques
 
-- 🧭 **Assistent guiat de 5 passos** (vista per defecte): Spotify → Playlist → Cançons → Cartons → Jugar.
+- <img src="docs/readme-icons/compass.svg" width="16" alt=""> **Assistent guiat de 5 passos** (vista per defecte): Spotify → Playlist → Cançons → Cartons → Jugar.
   Pensat per a usuaris sense coneixements tècnics. Botó **Mode avançat** per a la consola d'operador.
-- 🎧 **Spotify integrat** — login amb **popup de consentiment** (PKCE, Client ID incrustat; l'usuari no
+- <img src="docs/readme-icons/headphones.svg" width="16" alt=""> **Spotify integrat** — login amb **popup de consentiment** (PKCE, Client ID incrustat; l'usuari no
   escriu res), import de playlists i reproducció dins el navegador (Web Playback SDK, requereix Premium).
-- ▶️ **Reproducció automàtica** en sortejar, amb mode **fragment de 30 s** opcional que comença per la
+- <img src="docs/readme-icons/play.svg" width="16" alt=""> **Reproducció automàtica** en sortejar, amb mode **fragment de 30 s** opcional que comença per la
   part reconeixible (≈1/3 de la cançó, sol coincidir amb la tornada).
-- 🎲 **Sorteig determinista i reproduïble** — basat en *seed*; mateixa seed → mateix ordre.
-- 📡 **Temps real (SSE)** — locutor, pantalla de joc i pàgines de jugador sincronitzats a l'instant.
-- 🃏 **Generació de cartons** sense duplicats, mida configurable (files × columnes), PIN automàtic.
-- 📄 **PDF Pro** — A4 (2 per pàgina) o A5, predefinits (esdeveniment / impremta / estalvi tinta),
+- <img src="docs/readme-icons/dices.svg" width="16" alt=""> **Sorteig determinista i reproduïble** — basat en *seed*; mateixa seed → mateix ordre.
+- <img src="docs/readme-icons/radio-tower.svg" width="16" alt=""> **Temps real (SSE)** — locutor, pantalla de joc i pàgines de jugador sincronitzats a l'instant.
+- <img src="docs/readme-icons/grid-3x3.svg" width="16" alt=""> **Generació de cartons** sense duplicats, mida configurable (files × columnes), PIN automàtic.
+- <img src="docs/readme-icons/file-text.svg" width="16" alt=""> **PDF Pro** — A4 (2 per pàgina) o A5, predefinits (esdeveniment / impremta / estalvi tinta),
   cada cartó amb **QR signat (HMAC SHA-256)**.
-- 📱 **Validació des del mòbil** — escàner per lots (`/validate-batch`) amb so/vibració, fallback de
+- <img src="docs/readme-icons/smartphone.svg" width="16" alt=""> **Validació des del mòbil** — escàner per lots (`/validate-batch`) amb so/vibració, fallback de
   **foto** i descodificació **jsQR servida local** (immune a adblockers).
-- 📥 **Importadors** — CSV, XLSX i llistes de YouTube/Spotify.
-- 🔗 **Deep-links** — cada pestanya té `#hash`; `?load=PIN` carrega una sessió; `?mode=advanced` obre la consola.
-- ♿ **Accessibilitat** — focus visible, `aria-live`, navegació per teclat, `prefers-reduced-motion`.
-- 🔒 **Seguretat** — CSP amb *nonce*, secret QR per instal·lació, rate-limit i validació estricta.
-- 🌐 **Multiplataforma** — un sol servidor Node serveix tot; corre a macOS, Windows i Linux.
+- <img src="docs/readme-icons/download.svg" width="16" alt=""> **Importadors** — CSV, XLSX i llistes de YouTube/Spotify.
+- <img src="docs/readme-icons/link.svg" width="16" alt=""> **Deep-links** — cada pestanya té `#hash`; `?load=PIN` carrega una sessió; `?mode=advanced` obre la consola.
+- <img src="docs/readme-icons/accessibility.svg" width="16" alt=""> **Accessibilitat** — focus visible, `aria-live`, navegació per teclat, `prefers-reduced-motion`.
+- <img src="docs/readme-icons/shield.svg" width="16" alt=""> **Seguretat** — CSP amb *nonce*, secret QR per instal·lació, rate-limit i validació estricta.
+- <img src="docs/readme-icons/globe.svg" width="16" alt=""> **Multiplataforma** — un sol servidor Node serveix tot; corre a macOS, Windows i Linux.
 
 ## Arquitectura
 
@@ -104,7 +104,7 @@ Instal·ladors a la **[darrera Release](https://github.com/ipaud/QUINAPP/release
 - **Node.js 18+** (recomanat 20 o 22) i `npm`. Cap altre requisit per al mode navegador.
 - macOS, Windows o Linux.
 
-> ℹ️ `npm install` compila el mòdul natiu `better-sqlite3` per al teu Node (descarrega
+> <img src="docs/readme-icons/info.svg" width="16" alt=""> `npm install` compila el mòdul natiu `better-sqlite3` per al teu Node (descarrega
 > *prebuilds* per a les versions habituals). Si canvies de versió de Node i veus un error
 > d'ABI (`NODE_MODULE_VERSION`), fes `npm rebuild better-sqlite3`.
 
@@ -149,7 +149,7 @@ npm run electron:pack:mac      # dist/QUINAPP-<versió>-arm64.dmg   (cal macOS)
 npm run electron:pack:win      # dist/QUINAPP-<versió>-setup.exe   (cal Windows)
 ```
 
-> ℹ️ Cada instal·lador s'ha de compilar **al seu sistema** (el `.exe` no es pot generar
+> <img src="docs/readme-icons/info.svg" width="16" alt=""> Cada instal·lador s'ha de compilar **al seu sistema** (el `.exe` no es pot generar
 > de forma fiable des de Mac pel mòdul natiu i l'NSIS). Per generar-los tots dos
 > automàticament hi ha un **GitHub Action** ([.github/workflows/release.yml](.github/workflows/release.yml)):
 > crea un tag `v*` i compila el `.dmg` (runner macOS) i el `.exe` (runner Windows) i els
@@ -200,7 +200,7 @@ La primera pantalla és un **assistent** pensat per a qualsevol usuari:
 
 <img src="docs/screenshots/13-wizard-cards.png" alt="Pas 4 · Generar cartons" width="560" />
 
-**5. Jugar** — **▶ Següent cançó** (amb autoplay), **Sonant ara** + **Següent** + **historial**,
+**5. Jugar** — **<img src="docs/readme-icons/play.svg" width="14" alt=""> Següent cançó** (amb autoplay), **Sonant ara** + **Següent** + **historial**,
 ⏯ reproduir/pausar, toggle **fragment de 30 s**, **Compartir QR** (connexió mòbil) i
 **✅ Comprovar cartó** (obre un QR cap a l'escàner de validació). Botó **Nova quina** per recomençar.
 
@@ -208,7 +208,7 @@ La primera pantalla és un **assistent** pensat per a qualsevol usuari:
 
 > L'estat de l'assistent es desa al navegador: si recarregues a mig flux, recupera el pas i les dades.
 
-> 🎧 **Spotify (configuració única).** Com qualsevol app amb «Entra amb Spotify», QUINAPP
+> <img src="docs/readme-icons/headphones.svg" width="16" alt=""> **Spotify (configuració única).** Com qualsevol app amb «Entra amb Spotify», QUINAPP
 > necessita **una** app de Spotify registrada; el seu *Client ID* (que **no** és secret en
 > PKCE) queda incrustat via `SPOTIFY_CLIENT_ID`. Llavors l'usuari final només veu el **popup
 > de consentiment** de Spotify — no escriu cap ID.
