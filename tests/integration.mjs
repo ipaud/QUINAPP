@@ -1,6 +1,9 @@
 import { spawn } from 'node:child_process';
 import assert from 'node:assert/strict';
 import { createHmac } from 'node:crypto';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 import ExcelJS from 'exceljs';
 
 const HOST = '127.0.0.1';
@@ -55,9 +58,11 @@ function signData(data) {
   return createHmac('sha256', QR_SECRET).update(data).digest('hex');
 }
 
+// Fresh DB per run: never touch the user's ./data sessions.
+const dataDir = mkdtempSync(path.join(tmpdir(), 'quinapp-it-'));
 const server = spawn('node', ['apps/api/src/server.mjs'], {
   cwd: process.cwd(),
-  env: { ...process.env, HOST, PORT: String(PORT), QR_HMAC_SECRET: QR_SECRET },
+  env: { ...process.env, HOST, PORT: String(PORT), QR_HMAC_SECRET: QR_SECRET, QUINAPP_DATA_DIR: dataDir, QUINAPP_HTTPS: '0' },
   stdio: ['ignore', 'pipe', 'pipe'],
 });
 
@@ -195,4 +200,5 @@ try {
   server.kill('SIGTERM');
   await wait(150);
   if (!server.killed) server.kill('SIGKILL');
+  rmSync(dataDir, { recursive: true, force: true });
 }
