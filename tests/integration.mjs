@@ -146,6 +146,13 @@ try {
   });
   assert.equal(parsedCsv.songs.length, 15);
 
+  // Catalan header with accents ("títol") must be detected, not imported as a song.
+  const parsedCatalan = await api('/api/tools/parse-csv', {
+    method: 'POST',
+    body: { csvText: 'artista,títol\nManel,Teresa Rampell\nTxarango,Som riu' },
+  });
+  assert.deepEqual(parsedCatalan.songs.map((x) => x.artist), ['Manel', 'Txarango']);
+
   const wb = new ExcelJS.Workbook();
   const ws = wb.addWorksheet('Songs');
   ws.addRow(['Artist', 'Title']);

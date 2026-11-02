@@ -659,6 +659,16 @@ body.event-mode #eventShortcuts kbd {
   margin-bottom: 16px;
 }
 
+.modal-note {
+  text-align: left;
+  font-size: 14px;
+  line-height: 1.45;
+  background: var(--accent);
+  border: 2px solid var(--ink);
+  padding: 10px 12px;
+  margin-bottom: 16px;
+}
+
 .modal-actions {
   display: flex;
   flex-wrap: wrap;
@@ -1154,3 +1164,9 @@ body.advanced #wizard { display: none; }
 .claim-item { padding: 8px 10px; border: 2px solid var(--ink); font-weight: 700; font-size: 14px; }
 .claim-ok  { background: var(--live-on); color: var(--ink); }
 .claim-bad { background: var(--panel); color: var(--ink); border-left: 8px solid var(--brand); }
+
+/* ── Assistent: guia Client ID i fonts de cançons ── */
+.wiz-howto { padding-left: 20px; display: flex; flex-direction: column; gap: 6px; font-size: 14px; margin: 8px 0 12px; }
+.wiz-howto code { overflow-wrap: anywhere; background: var(--bg); border: 1px solid var(--ink); padding: 0 4px; }
+.wiz-song-sources { display: flex; flex-direction: column; gap: 8px; }
+.wiz-song-sources textarea { width: 100%; font: inherit; border: var(--border); padding: 8px; background: var(--bg); }

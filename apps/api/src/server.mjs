@@ -251,6 +251,10 @@ function parseSpotifyPlaylistId(url) {
   return m2?.[1] || null;
 }
 
+// Header names in Catalan, Spanish or English, with or without accents.
+const ARTIST_HEADER = /artist|artista/;
+const TITLE_HEADER = /title|t[ií]tol|t[ií]tulo|can[cç][oó]|canci[oó]n/;
+
 function parseCSV(text) {
   const rows = [];
   let cur = '';
@@ -298,8 +302,8 @@ function parseCSV(text) {
   }
 
   const header = rows[0]?.map((h) => String(h).toLowerCase()) || [];
-  const hA = header.findIndex((h) => /artist|artista/.test(h));
-  const hT = header.findIndex((h) => /title|titol|título|titulo|canco|cancion|canción/.test(h));
+  const hA = header.findIndex((h) => ARTIST_HEADER.test(h));
+  const hT = header.findIndex((h) => TITLE_HEADER.test(h));
   const start = hA > -1 && hT > -1 ? 1 : 0;
 
   const songs = [];
@@ -336,8 +340,8 @@ async function parseXlsxBase64(base64) {
       const hArtist = artist.toLowerCase();
       const hTitle = title.toLowerCase();
       const looksLikeHeader =
-        /artist|artista/.test(hArtist) &&
-        /title|titol|título|titulo|canco|cancion|canción/.test(hTitle);
+        ARTIST_HEADER.test(hArtist) &&
+        TITLE_HEADER.test(hTitle);
       if (looksLikeHeader) return;
     }
     if (artist || title) {

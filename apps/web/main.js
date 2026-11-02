@@ -240,7 +240,7 @@ function showToast(text, type = 'info') {
 
 // Native <dialog>: showModal() makes the page inert (focus stays inside) and
 // Escape closes it; focus goes back to whatever opened it.
-function showQrModal(title, qrDataUrl, url) {
+function showQrModal(title, qrDataUrl, url, note = '') {
   const opener = document.activeElement;
   const modal = document.createElement('dialog');
   modal.className = 'modal-overlay modal-content';
@@ -298,7 +298,14 @@ function showQrModal(title, qrDataUrl, url) {
   });
   actions.appendChild(copyBtn);
 
-  modal.append(h3, img, link, actions);
+  modal.append(h3, img, link);
+  if (note) {
+    const p = document.createElement('p');
+    p.className = 'modal-note';
+    p.textContent = note;
+    modal.append(p);
+  }
+  modal.append(actions);
   document.body.appendChild(modal);
   modal.addEventListener('close', () => {
     modal.remove();
@@ -548,11 +555,9 @@ function parseSongsFromTextarea(text) {
     .map((line) => line.trim())
     .filter(Boolean)
     .map((line) => {
-      const parts = line.split(/\s*[—-]\s*|\s+-\s+/);
-      return {
-        artist: (parts[0] || '(artista)').trim(),
-        title: (parts[1] || '(cancion)').trim(),
-      };
+      // Prefer a spaced separator so "Jay-Z - Song" keeps the artist's hyphen.
+      const m = line.match(/^(.*?)\s+[—–-]\s+(.*)$/) || line.match(/^(.*?)[—–-](.*)$/);
+      return { artist: (m?.[1] || line).trim(), title: (m?.[2] || '').trim() };
     });
 }
 
@@ -2143,6 +2148,12 @@ document.addEventListener('keydown', (event) => {
     spotConnect: document.getElementById('wizSpotifyConnect'),
     spotStatus: document.getElementById('wizSpotifyStatus'),
     clientIdWrap: document.getElementById('wizClientIdWrap'),
+    redirectUri: document.getElementById('wizRedirectUri'),
+    spotPlan: document.getElementById('wizSpotifyPlan'),
+    paste: document.getElementById('wizPaste'),
+    pasteAdd: document.getElementById('wizPasteAdd'),
+    fileBtn: document.getElementById('wizFileBtn'),
+    file: document.getElementById('wizFile'),
     clientId: document.getElementById('wizClientId'),
     skipSpotify: document.getElementById('wizSkipSpotify'),
     next1: document.getElementById('wizNext1'),
@@ -2210,6 +2221,30 @@ document.addEventListener('keydown', (event) => {
   }
 
   // Pas 1 — Spotify
+  // Each host brings their own Spotify app (Client ID). Spotify only accepts
+  // https or the loopback IP as redirect, so the guide shows the right one.
+  if (W.redirectUri) {
+    const loopback = ['127.0.0.1', 'localhost'].includes(location.hostname);
+    W.redirectUri.textContent = loopback ? `http://127.0.0.1:${location.port || 80}/` : `${location.origin}/`;
+  }
+
+  // Premium is needed for in-app playback; say so right after connecting,
+  // not in the middle of the event.
+  let spotifyPlanChecked = false;
+  async function checkSpotifyPlan() {
+    if (spotifyPlanChecked || !W.spotPlan) return;
+    spotifyPlanChecked = true;
+    try {
+      const me = await spotifyApi('/me');
+      W.spotPlan.textContent = me?.product === 'premium'
+        ? 'Compte Premium: les cançons sonaran soles durant la partida.'
+        : 'Compte gratuït: pots importar llistes, però QUINAPP no pot fer sonar la música. Posa-la tu des de l’app de Spotify.';
+      W.spotPlan.hidden = false;
+    } catch {
+      spotifyPlanChecked = false;
+    }
+  }
+
   function refreshSpotifyStep() {
     const connected = spotifyConnected();
     if (W.spotStatus) {
@@ -2217,6 +2252,8 @@ document.addEventListener('keydown', (event) => {
       W.spotStatus.classList.toggle('ok', connected);
     }
     if (W.next1) W.next1.disabled = !connected;
+    if (connected) checkSpotifyPlan();
+    else if (W.clientIdWrap && !currentSpotifyClientId()) W.clientIdWrap.hidden = false;
   }
   W.spotConnect?.addEventListener('click', async () => {
     try {
@@ -2309,6 +2346,37 @@ document.addEventListener('keydown', (event) => {
     });
     updateCount();
   }
+  // No Spotify: paste "Artista - Títol" lines or upload a CSV/Excel file.
+  function addSongs(list) {
+    const added = list.filter((x) => (x.artist || '').trim() && (x.title || '').trim())
+      .map((x) => ({ artist: x.artist.trim(), title: x.title.trim() }));
+    if (!added.length) throw new Error('No hem trobat cap cançó. Fes servir el format «Artista - Títol».');
+    wstate.songs = [...wstate.songs.filter((x) => (x.artist || '').trim() || (x.title || '').trim()), ...added];
+    renderSongs();
+    showToast(`${added.length} cançons afegides`, 'success');
+  }
+  W.pasteAdd?.addEventListener('click', () => {
+    try {
+      addSongs(parseSongsFromTextarea(W.paste?.value || ''));
+      if (W.paste) W.paste.value = '';
+    } catch (e) { showToast(e.message, 'error'); }
+  });
+  W.fileBtn?.addEventListener('click', () => W.file?.click());
+  W.file?.addEventListener('change', async () => {
+    const file = W.file.files?.[0];
+    if (!file) return;
+    try {
+      const parsed = await withBusy(W.fileBtn, 'Llegint el fitxer…', async () => (/\.xlsx$/i.test(file.name)
+        ? api('/api/tools/parse-xlsx', { method: 'POST', body: { base64: arrayBufferToBase64(await file.arrayBuffer()) } })
+        : api('/api/tools/parse-csv', { method: 'POST', body: { csvText: await file.text() } })));
+      addSongs(parsed.songs || []);
+    } catch (e) {
+      showToast(e.message, 'error');
+    } finally {
+      W.file.value = '';
+    }
+  });
+
   W.addSong?.addEventListener('click', () => {
     wstate.songs.push({ artist: '', title: '' });
     renderSongs();
@@ -2388,7 +2456,10 @@ document.addEventListener('keydown', (event) => {
       const res = await fetch('/api/system/qr?path=/validate-batch&secure=1');
       const data = await res.json().catch(() => ({}));
       if (data.qrDataUrl) {
-        showQrModal('Escàner de validació de cartons', data.qrDataUrl, data.url);
+        const certNote = String(data.url || '').startsWith('https:')
+          ? 'El mòbil avisarà que la connexió no és privada. És normal: el certificat el crea aquest ordinador. A l’iPhone toca «Mostrar detalls» → «visitar aquest lloc web»; a Android, «Configuració avançada» → «Continua».'
+          : '';
+        showQrModal('Escàner de validació de cartons', data.qrDataUrl, data.url, certNote);
         return;
       }
       window.open(data.url || `${location.origin}/validate-batch`, '_blank');
