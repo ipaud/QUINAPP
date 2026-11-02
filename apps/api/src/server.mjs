@@ -423,6 +423,8 @@ function renderValidateCardHtml(nonce) {
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Validar Cartó · QUINAPP</title>
+  <link rel="icon" href="/brand/quinapp-symbol.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="/brand/apple-touch-icon.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700;800&display=swap" rel="stylesheet" />
@@ -431,7 +433,7 @@ function renderValidateCardHtml(nonce) {
     *{box-sizing:border-box;margin:0;padding:0}
     body{font-family:"Space Grotesk",system-ui,sans-serif;background:var(--bg);color:var(--ink);padding:24px 16px;min-height:100vh}
     .wrap{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
-    .logo{font-size:13px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);padding-bottom:4px}
+    .logo{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);padding-bottom:4px}
     .logo span{color:var(--ink)}
     .card{background:var(--panel);border:var(--border);box-shadow:var(--shadow);padding:24px}
     h1{font-size:13px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:16px}
@@ -450,7 +452,7 @@ function renderValidateCardHtml(nonce) {
 </head>
 <body>
   <main class="wrap">
-    <div class="logo"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg> <span>QUINAPP</span> · Validació cartó</div>
+    <div class="logo"><img src="/brand/quinapp-symbol.svg" width="28" height="28" alt="" /> <span>QUINAPP</span> · Validació cartó</div>
     <section class="card">
       <h1>Estat del cartó</h1>
       <div id="badge" class="badge loading">CARREGANT</div>
@@ -514,6 +516,8 @@ function renderValidateBatchHtml(nonce) {
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Escaneig per lots · QUINAPP</title>
+  <link rel="icon" href="/brand/quinapp-symbol.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="/brand/apple-touch-icon.png" />
   <meta name="theme-color" content="#ffe234" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -523,7 +527,7 @@ function renderValidateBatchHtml(nonce) {
     *{box-sizing:border-box;margin:0;padding:0}
     body{font-family:"Space Grotesk",system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--ink);line-height:1.4}
     .appbar{background:var(--accent);border-bottom:var(--border);padding:12px 16px;display:flex;align-items:center;gap:8px;font-weight:800;letter-spacing:.08em;position:sticky;top:0;z-index:10}
-    .appbar svg{width:22px;height:22px}
+    .appbar img{width:24px;height:24px}
     .wrap{max-width:980px;margin:0 auto;padding:20px 16px 44px}
     .head{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:14px}
     .head-actions{display:flex;gap:8px;flex-wrap:wrap}
@@ -562,7 +566,7 @@ function renderValidateBatchHtml(nonce) {
   </style>
 </head>
 <body>
-  <div class="appbar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg> QUINAPP · Escàner</div>
+  <div class="appbar"><img src="/brand/quinapp-symbol-mono.svg" width="24" height="24" alt="" /> QUINAPP · Escàner</div>
   <main class="wrap">
     <div class="head">
       <div>
@@ -992,6 +996,8 @@ function renderPlayCardHtml(pin, card, nonce) {
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Cartó ${htmlEscape(card.number)} · QUINAPP</title>
+  <link rel="icon" href="/brand/quinapp-symbol.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="/brand/apple-touch-icon.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700;800&display=swap" rel="stylesheet" />
@@ -1000,7 +1006,7 @@ function renderPlayCardHtml(pin, card, nonce) {
     *{box-sizing:border-box;margin:0;padding:0}
     body{font-family:"Space Grotesk",system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--ink);line-height:1.4}
     .appbar{background:var(--accent);border-bottom:var(--border);padding:12px 16px;display:flex;align-items:center;gap:8px;font-weight:800;letter-spacing:.08em;position:sticky;top:0;z-index:10}
-    .appbar svg{width:22px;height:22px}
+    .appbar img{width:24px;height:24px}
     .wrap{max-width:600px;margin:0 auto;padding:20px 16px 44px}
     .header{text-align:center;margin-bottom:18px}
     h1{font-size:24px;letter-spacing:.04em;text-transform:uppercase}
@@ -1027,7 +1033,7 @@ function renderPlayCardHtml(pin, card, nonce) {
   </style>
 </head>
 <body>
-  <div class="appbar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg> QUINAPP</div>
+  <div class="appbar"><img src="/brand/quinapp-symbol-mono.svg" width="24" height="24" alt="" /> QUINAPP</div>
   <div class="wrap">
     <div class="header">
       <h1>Cartó #${htmlEscape(card.number)}</h1>
@@ -1232,6 +1238,8 @@ async function serveStatic(req, res, pathname) {
       ext === '.js' ? 'text/javascript; charset=utf-8' :
       ext === '.css' ? 'text/css; charset=utf-8' :
       ext === '.json' ? 'application/json; charset=utf-8' :
+      ext === '.svg' ? 'image/svg+xml' :
+      ext === '.png' ? 'image/png' :
       'application/octet-stream';
 
     const headers = { 'Content-Type': type };

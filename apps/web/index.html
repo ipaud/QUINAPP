@@ -3,8 +3,12 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="theme-color" content="#faf9f6" />
-  <title>QUINAPP</title>
+  <meta name="theme-color" content="#ffe234" />
+  <meta name="description" content="QUINAPP · Quina musical. Juga, canta, valida." />
+  <title>QUINAPP · Quina musical</title>
+  <link rel="icon" href="./brand/quinapp-symbol.svg" type="image/svg+xml" />
+  <link rel="icon" href="./brand/favicon-32.png" type="image/png" sizes="32x32" />
+  <link rel="apple-touch-icon" href="./brand/apple-touch-icon.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700;800&display=swap" rel="stylesheet" />
@@ -17,7 +21,8 @@
   <header class="app-header">
     <div class="header-inner">
       <h1 class="logo">
-        <span class="logo-icon" data-icon="music" aria-hidden="true"></span>
+        <!-- Sobre groc: versió monocroma del símbol (manual §04) -->
+        <img class="logo-symbol" src="./brand/quinapp-symbol-mono.svg" width="32" height="32" alt="" />
         <span class="logo-text">QUINAPP</span>
       </h1>
       <nav class="tabs" aria-label="Seccions">
@@ -34,6 +39,14 @@
 
   <!-- ── Assistent guiat (vista base) ───────────────────────────────────────── -->
   <section id="wizard" class="wizard" aria-label="Assistent de creació de quina">
+    <div class="brand-lockup">
+      <img class="brand-lockup-symbol" src="./brand/quinapp-symbol.svg" width="88" height="88" alt="" />
+      <div class="brand-lockup-text">
+        <span class="brand-tag">Quina musical</span>
+        <p class="brand-wordmark">QUINAPP</p>
+        <p class="brand-claim">Munta una quina musical en minuts.</p>
+      </div>
+    </div>
     <ol class="wiz-steps" aria-hidden="true">
       <li class="wiz-step-dot active" data-step="1"><span>1</span> Spotify</li>
       <li class="wiz-step-dot" data-step="2"><span>2</span> Playlist</li>
@@ -425,6 +438,14 @@
     </section>
 
   </main>
+
+  <footer class="app-footer">
+    <div class="footer-inner">
+      <img src="./brand/quinapp-symbol-negatiu.svg" width="32" height="32" alt="" />
+      <span class="footer-wordmark">QUINAPP</span>
+      <span class="footer-claim">Juga · Canta · Valida</span>
+    </div>
+  </footer>
 
   <div id="toastContainer" class="toast-container"></div>
 

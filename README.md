@@ -1,6 +1,8 @@
 <div align="center">
 
-# <img src="docs/readme-icons/music.svg" width="26" alt=""> QUINAPP
+<img src="apps/web/brand/quinapp-symbol.svg" width="96" height="96" alt="Símbol QUINAPP" />
+
+# QUINAPP
 
 **Quina musical (bingo de cançons) per a esdeveniments — multiplataforma (navegador) i amb assistent guiat.**
 

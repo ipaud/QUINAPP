@@ -6,6 +6,7 @@ import QRCode from 'qrcode';
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import { toPdfSafeText } from './songs.mjs';
 import { buildCardQrQuery } from './qr.mjs';
+import { BRAND_COLORS, SYMBOL_PATHS, SYMBOL_VARIANTS, SYMBOL_VIEWBOX } from './brand.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -47,6 +48,20 @@ async function loadPdfTypography(pdfDoc) {
   }
 }
 
+function hexToRgb(hex) {
+  const n = Number.parseInt(hex.slice(1), 16);
+  return rgb(((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255);
+}
+
+// Q-nota symbol (principal) as vectors; `flat` drops the shadow (ink saving).
+function drawSymbol(page, x, yTop, size, flat = false) {
+  const scale = size / SYMBOL_VIEWBOX;
+  for (const [key, hex] of SYMBOL_VARIANTS.principal) {
+    if (flat && key === 'shadow') continue;
+    page.drawSvgPath(SYMBOL_PATHS[key], { x, y: yTop, scale, color: hexToRgb(hex) });
+  }
+}
+
 async function drawCardInRectAsync(pdfDoc, page, session, card, rect, options = {}) {
   const font = options.typography?.regular || await pdfDoc.embedFont(StandardFonts.Helvetica);
   const fontMedium = options.typography?.medium || font;
@@ -59,6 +74,7 @@ async function drawCardInRectAsync(pdfDoc, page, session, card, rect, options = 
   const yellow = rgb(1.000, 0.886, 0.204);
   const white = rgb(1.000, 1.000, 1.000);
   const crema = rgb(0.980, 0.976, 0.965);
+  const red = hexToRgb(BRAND_COLORS.brand);
 
   const x0 = rect.x;
   const y0 = rect.y;
@@ -110,10 +126,26 @@ async function drawCardInRectAsync(pdfDoc, page, session, card, rect, options = 
   const qrBlockY = showMeta ? metaY : headerY;
   const qrBlockH = headerH + (showMeta ? (metaH + 4) : 0);
 
+  // Lockup (manual §02): symbol + red descriptor tag + wordmark.
   page.drawRectangle({ x: ix + 3, y: headerY - 3, width: leftW, height: headerH, color: ink });
-  page.drawRectangle({ x: ix, y: headerY, width: leftW, height: headerH, color: yellow, borderWidth: 2.4, borderColor: ink });
-  drawCentered('QUINAPP', ix, headerY, leftW, headerY + headerH - 20, 19, 'bold', ink);
-  drawCentered('CARTO MUSICAL', ix, headerY, leftW, headerY + 7, 8.5, 'medium', inkSub);
+  page.drawRectangle({ x: ix, y: headerY, width: leftW, height: headerH, color: white, borderWidth: 2.4, borderColor: ink });
+  const symSize = headerH - 8;
+  drawSymbol(page, ix + 6, headerY + headerH - 3, symSize, preset === 'ahorro');
+  // Tag sits right on top of the wordmark; the pair is centred vertically.
+  const textX = ix + 6 + symSize + 8;
+  const wordSize = Math.min(26, headerH * 0.52);
+  const capH = wordSize * 0.7;
+  const tagText = 'QUINA MUSICAL';
+  const tagSize = wordSize * 0.3;
+  const tagH = tagSize + 5;
+  const tagW = fontBold.widthOfTextAtSize(tagText, tagSize) + 8;
+  const gap = 4.5; // clears the tag shadow
+  const baseY = headerY + (headerH - (capH + gap + tagH)) / 2;
+  const tagY = baseY + capH + gap;
+  page.drawRectangle({ x: textX + 1.6, y: tagY - 1.6, width: tagW, height: tagH, color: ink });
+  page.drawRectangle({ x: textX, y: tagY, width: tagW, height: tagH, color: red, borderWidth: 1.2, borderColor: ink });
+  page.drawText(tagText, { x: textX + 4, y: tagY + 2.6, size: tagSize, font: fontBold, color: white });
+  page.drawText('QUINAPP', { x: textX - 1, y: baseY, size: wordSize, font: fontBold, color: ink });
 
   if (showMeta) {
     page.drawRectangle({ x: ix + 2, y: metaY - 2, width: leftW, height: metaH, color: ink });
