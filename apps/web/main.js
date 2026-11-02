@@ -1319,8 +1319,8 @@ function connectLiveSSE(pin) {
 
   es.addEventListener('claim.checked', (evt) => {
     const data = JSON.parse(evt.data);
-    if (data.result?.valid) showToast(`Reclamacio valida: ${data.result.type.toUpperCase()}!`, 'success');
-    else showToast(`No valida: ${data.result?.type?.toUpperCase() || ''}`, 'error');
+    const card = state.cards.find((c) => c.id === data.cardId);
+    showToast(claimMessage(data.result?.type, Boolean(data.result?.valid), card?.number), data.result?.valid ? 'success' : 'error');
   });
 
   es.addEventListener('ping', () => {
@@ -1865,6 +1865,14 @@ els.exportLogCsv?.addEventListener('click', () => {
   window.open(`/api/sessions/${encodeURIComponent(state.session.pin)}/log-export?format=csv`, '_blank');
 });
 
+const CLAIM_LABELS = { linea: 'Línia', bingo: 'Quina' };
+
+function claimMessage(type, valid, cardNumber) {
+  const label = CLAIM_LABELS[type] || 'Reclamació';
+  const card = cardNumber ? ` · Cartó #${cardNumber}` : '';
+  return valid ? `${label} vàlida!${card}` : `${label} no vàlida${card}`;
+}
+
 async function submitClaim(type) {
   try {
     if (!state.session || !activeCard()) throw new Error('Cal sessio i carto');
@@ -1872,11 +1880,7 @@ async function submitClaim(type) {
       method: 'POST',
       body: { cardId: activeCard().id, type },
     });
-    if (result.valid) {
-      showToast(`Reclamacio valida: ${type.toUpperCase()}!`, 'success');
-    } else {
-      showToast(`No valida: ${type.toUpperCase()} (linies=${result.lines})`, 'error');
-    }
+    showToast(claimMessage(type, result.valid, activeCard().number), result.valid ? 'success' : 'error');
   } catch (error) {
     showToast(error.message, 'error');
   }
@@ -2064,9 +2068,14 @@ updateSpotifyPlayer(null);
 })();
 
 document.addEventListener('keydown', (event) => {
-  const tag = String(event.target?.tagName || '').toLowerCase();
-  const inField = tag === 'input' || tag === 'textarea' || tag === 'select' || event.target?.isContentEditable;
-  if (inField) return;
+  // One-key shortcuts only on the visible locutor tab: never over browser
+  // shortcuts (Cmd+R/F/S), focused controls (Space must press the button) or a modal.
+  if (event.metaKey || event.ctrlKey || event.altKey) return;
+  if (event.target?.closest?.('input, textarea, select, button, a, summary, [role="button"], [contenteditable="true"]')) return;
+  if (document.querySelector('.modal-overlay')) return;
+  const locutorVisible = document.body.classList.contains('advanced')
+    && !document.getElementById('tab-locutor')?.classList.contains('hidden');
+  if (!locutorVisible) return;
   const key = String(event.key || '').toLowerCase();
 
   if (event.code === 'Space') {
@@ -2139,7 +2148,6 @@ document.addEventListener('keydown', (event) => {
     spotifyHint: document.getElementById('wizSpotifyHint'),
     openConsole: document.getElementById('wizOpenConsole'),
     restart: document.getElementById('wizRestart'),
-    share: document.getElementById('wizShare'),
   };
   if (!W.section) return;
 
@@ -2217,8 +2225,9 @@ document.addEventListener('keydown', (event) => {
   W.importBtn?.addEventListener('click', async () => {
     try {
       const url = (W.playlistUrl?.value || '').trim();
-      if (!url) throw new Error('Enganxa una URL de playlist');
+      if (!url) throw new Error("Enganxa l'enllaç d'una llista de Spotify");
       const provider = detectPlaylistProvider(url);
+      if (provider === 'youtube') throw new Error("Les llistes de YouTube s'importen des del Mode avançat.");
       let token = '';
       if (provider === 'spotify' || provider === 'unknown') token = (await spotifyGetValidToken()) || '';
       const parsed = await withBusy(W.importBtn, 'Important…', () => api('/api/tools/import-playlist', {
@@ -2310,6 +2319,7 @@ document.addEventListener('keydown', (event) => {
     if (W.next4) W.next4.disabled = false;
   }
   W.generate?.addEventListener('click', async () => {
+    if (wstate.pin && !confirm(`Ja hi ha una partida (PIN ${wstate.pin}). Generar-ne una de nova? Els cartons que ja has imprès deixaran de servir.`)) return;
     try { await withBusy(W.generate, 'Generant…', doGenerate); }
     catch (e) { showToast(e.message, 'error'); }
   });
@@ -2339,14 +2349,6 @@ document.addEventListener('keydown', (event) => {
     });
   }
   W.openConsole?.addEventListener('click', () => { setMode(true); switchTab('locutor'); });
-  W.share?.addEventListener('click', async () => {
-    try {
-      const cfg = await fetchNetworkConfig();
-      const url = cfg.selectedUrl || pickBestPhoneUrl(cfg.urls);
-      if (!cfg.qrDataUrl || !url) throw new Error('No hi ha URL de xarxa disponible');
-      showQrModal(`Connexió mòbil${wstate.pin ? ` · PIN ${wstate.pin}` : ''}`, cfg.qrDataUrl, url);
-    } catch (e) { showToast(e.message, 'error'); }
-  });
   W.check?.addEventListener('click', async () => {
     try {
       // QR generat al servidor (no depèn de cap CDN, immune a adblockers).
@@ -2365,6 +2367,7 @@ document.addEventListener('keydown', (event) => {
     }
   });
   W.restart?.addEventListener('click', () => {
+    if (wstate.pin && !confirm('Tancar aquesta quina i començar-ne una de nova? Els cartons impresos deixaran de servir.')) return;
     wstate.songs = []; wstate.pin = null;
     lsDel(STATE_KEY);
     if (W.importStatus) W.importStatus.textContent = '';

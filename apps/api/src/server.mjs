@@ -9,6 +9,7 @@ import QRCode from 'qrcode';
 import { migrate, dbPath } from './data/db.mjs';
 import { buildCardsPdf } from './lib/pdf-cards.mjs';
 import { normalizeSongKey } from './lib/songs.mjs';
+import { countCompletedLines } from '../../../packages/core/src/index.mjs';
 import { decodeAndVerifyQrQuery } from './lib/qr.mjs';
 import { getSseSet, broadcast, startSsePing } from './lib/realtime.mjs';
 import {
@@ -395,19 +396,24 @@ function computeCardValidation(pin, card) {
   const drawnKeys = new Set(drawn.map(normalizeSongKey));
   const total = card.songs.length;
   const missing = [];
-  let matched = 0;
-  for (const song of card.songs) {
+  const marked = new Set();
+  card.songs.forEach((song, idx) => {
     if (drawnKeys.has(normalizeSongKey(song))) {
-      matched += 1;
+      marked.add(idx);
     } else {
       missing.push({ artist: song.artist, title: song.title });
     }
-  }
+  });
+  const matched = marked.size;
+  const { rows, cols } = getSession(pin);
+  const lines = countCompletedLines(marked, rows, cols);
   return {
     pin,
     cardId: card.id,
     cardNumber: card.number,
+    // valid = cartó ple (QUINA). Una línia guanyadora és lines >= 1, no "no vàlid".
     valid: matched === total,
+    lines,
     matched,
     total,
     missingSample: missing.slice(0, 8),
@@ -429,7 +435,7 @@ function renderValidateCardHtml(nonce) {
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700;800&display=swap" rel="stylesheet" />
   <style>
-    :root{--bg:#faf9f6;--panel:#fff;--ink:#0d0d0d;--muted:#6b6b6b;--brand:#ff4b4b;--accent:#ffe234;--border:3px solid #0d0d0d;--shadow:5px 5px 0 #0d0d0d}
+    :root{--bg:#faf9f6;--panel:#fff;--ink:#0d0d0d;--muted:#6b6b6b;--brand:#ff4b4b;--accent:#ffe234;--live:#00c896;--border:3px solid #0d0d0d;--shadow:5px 5px 0 #0d0d0d}
     *{box-sizing:border-box;margin:0;padding:0}
     body{font-family:"Space Grotesk",system-ui,sans-serif;background:var(--bg);color:var(--ink);padding:24px 16px;min-height:100vh}
     .wrap{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
@@ -439,7 +445,10 @@ function renderValidateCardHtml(nonce) {
     h1{font-size:13px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:16px}
     .badge{display:inline-block;padding:6px 16px;font-size:28px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;border:var(--border);margin-bottom:14px}
     .badge.valid{background:var(--accent)}
-    .badge.invalid{background:var(--brand);color:#fff}
+    .badge.line{background:var(--live)}
+    .badge.invalid{background:var(--brand);color:var(--ink)}
+    .play-link{display:block;text-align:center;margin-top:16px;padding:14px;background:var(--brand);color:var(--ink);border:var(--border);box-shadow:var(--shadow);font-weight:800;text-decoration:none;text-transform:uppercase;letter-spacing:.06em}
+    .play-link:active{transform:translate(3px,3px);box-shadow:none}
     .badge.loading{background:var(--bg)}
     .progress{font-size:20px;font-weight:800;margin-bottom:8px}
     .meta{font-size:13px;color:var(--muted);margin-top:4px}
@@ -455,7 +464,7 @@ function renderValidateCardHtml(nonce) {
     <div class="logo"><img src="/brand/quinapp-symbol.svg" width="28" height="28" alt="" /> <span>QUINAPP</span> · Validació cartó</div>
     <section class="card">
       <h1>Estat del cartó</h1>
-      <div id="badge" class="badge loading">CARREGANT</div>
+      <div id="badge" class="badge loading" role="status" aria-live="polite">CARREGANT</div>
       <div class="progress" id="progress"></div>
       <p class="meta" id="metaPin"></p>
       <p class="meta" id="metaCard"></p>
@@ -463,6 +472,7 @@ function renderValidateCardHtml(nonce) {
         <h2>Cançons que falten</h2>
         <ul id="missingList"></ul>
       </div>
+      <a id="playLink" class="play-link" hidden>Jugar amb el mòbil</a>
     </section>
     <div class="refresh" id="metaChecked"></div>
   </main>
@@ -482,8 +492,12 @@ function renderValidateCardHtml(nonce) {
         const res = await fetch('/api/validate-card?d='+encodeURIComponent(d||'')+'&s='+encodeURIComponent(s||''));
         const data = await res.json();
         if(!res.ok) throw new Error(data.error || 'No es pot validar');
-        badgeEl.textContent = data.valid ? 'VÀLID' : 'NO VÀLID';
-        badgeEl.className = 'badge ' + (data.valid ? 'valid' : 'invalid');
+        const verdict = data.valid ? ['QUINA!', 'valid'] : data.lines > 0 ? ['LÍNIA!', 'line'] : ['ENCARA NO', 'invalid'];
+        badgeEl.textContent = verdict[0];
+        badgeEl.className = 'badge ' + verdict[1];
+        const playLink = document.getElementById('playLink');
+        playLink.href = '/play-card?pin=' + encodeURIComponent(data.pin) + '&card=' + encodeURIComponent(data.cardId);
+        playLink.hidden = false;
         progressEl.textContent = data.matched + ' / ' + data.total + ' cançons sonades';
         pinEl.textContent = 'PIN: ' + data.pin;
         cardEl.textContent = 'Cartó #' + data.cardNumber;
@@ -543,18 +557,20 @@ function renderValidateBatchHtml(nonce) {
     button:active{transform:translate(3px,3px);box-shadow:none}
     button:disabled{opacity:.4;cursor:not-allowed}
     button svg{width:16px;height:16px}
-    #startBtn{background:var(--green);color:#fff}
+    #startBtn{background:var(--brand);color:var(--ink)}
     #photoBtn,#exportCsvBtn{background:var(--accent)}
     input,select{border:var(--border);background:var(--bg);padding:10px 12px;width:100%}
     .status{font-size:14px;margin-top:10px;font-weight:700}
     .list{display:flex;flex-direction:column;gap:8px;max-height:72vh;overflow:auto}
     .item{border:var(--border);box-shadow:var(--shadow-sm);padding:10px 12px;background:#fff;border-left-width:8px}
-    .item.ok{border-left-color:var(--green)}
+    .item.ok{border-left-color:var(--accent)}
+    .item.line{border-left-color:var(--live)}
     .item.bad{border-left-color:var(--brand)}
     .top{display:flex;justify-content:space-between;gap:8px;align-items:center}
     .badge{font-size:12px;font-weight:800;letter-spacing:.06em;padding:3px 8px;border:2px solid var(--ink)}
-    .item.ok .badge{background:var(--green);color:#fff}
-    .item.bad .badge{background:var(--brand);color:#fff}
+    .item.ok .badge{background:var(--accent);color:var(--ink)}
+    .item.line .badge{background:var(--live);color:var(--ink)}
+    .item.bad .badge{background:var(--brand);color:var(--ink)}
     .meta{font-size:13px;color:#333;margin-top:6px}
     .small{font-size:12px;color:var(--muted)}
     .actions{display:flex;justify-content:flex-end;margin-top:8px}
@@ -575,7 +591,7 @@ function renderValidateBatchHtml(nonce) {
       </div>
       <div class="head-actions">
         <button id="exportCsvBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg> Exportar CSV</button>
-        <button id="clearBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg> Netejar llista</button>
+        <button id="clearBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg> Esborrar resultats</button>
       </div>
     </div>
     <section class="grid">
@@ -586,7 +602,7 @@ function renderValidateBatchHtml(nonce) {
           <button id="stopBtn" disabled>Aturar</button>
           <button id="photoBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 12h10"/></svg> Foto QR</button>
         </div>
-        <div class="status" id="status">Estat: a punt</div>
+        <div class="status" id="status" role="status" aria-live="polite">Estat: a punt</div>
         <label class="label" for="manualInput">Alternativa manual (URL del QR)</label>
         <input id="manualInput" placeholder="Enganxa URL /validate-card?d=...&s=..." />
         <input id="photoInput" type="file" accept="image/*" capture="environment" hidden />
@@ -598,8 +614,8 @@ function renderValidateBatchHtml(nonce) {
         <div class="filters">
           <select id="filterStatus" aria-label="Filtrar per estat">
             <option value="all">Tots</option>
-            <option value="invalid">Nomes no valids</option>
-            <option value="valid">Nomes valids</option>
+            <option value="invalid">Només sense premi</option>
+            <option value="valid">Només guanyadors (línia o quina)</option>
           </select>
           <select id="filterWindow" aria-label="Filtrar per temps">
             <option value="all">Tot el temps</option>
@@ -775,14 +791,14 @@ function renderValidateBatchHtml(nonce) {
         setStatus('sense resultats per exportar');
         return;
       }
-      const header = ['timestamp','pin','cardNumber','valid','matched','total','missing'];
+      const header = ['timestamp','pin','cardNumber','result','matched','total','missing'];
       const lines = [header.join(',')];
       for(const row of rows){
         lines.push([
           new Date(row.checkedAt).toISOString(),
           row.pin,
           row.cardNumber,
-          row.valid ? 'valid' : 'invalid',
+          row.result,
           row.matched,
           row.total,
           row.missing.join(' | ')
@@ -803,25 +819,27 @@ function renderValidateBatchHtml(nonce) {
     }
     function renderResult(data){
       const item = document.createElement('article');
-      item.className = 'item ' + (data.valid ? 'ok' : 'bad');
-      item.dataset.valid = data.valid ? '1' : '0';
+      const winner = data.valid || data.lines > 0;
+      const verdict = data.valid ? 'QUINA' : data.lines > 0 ? 'LÍNIA' : 'ENCARA NO';
+      item.className = 'item ' + (data.valid ? 'ok' : data.lines > 0 ? 'line' : 'bad');
+      item.dataset.valid = winner ? '1' : '0';
       item.dataset.ts = String(data.checkedAt || Date.now());
       const top = document.createElement('div'); top.className = 'top';
       const t1 = document.createElement('div');
       t1.className = 'badge';
-      t1.textContent = data.valid ? 'VALID' : 'NO VALID';
+      t1.textContent = verdict;
       const t2 = document.createElement('div');
       t2.className = 'small';
       t2.textContent = new Date(data.checkedAt || Date.now()).toLocaleTimeString();
       top.append(t1,t2);
       const meta = document.createElement('div');
       meta.className = 'meta';
-      meta.textContent = 'PIN ' + data.pin + ' · Carto #' + data.cardNumber + ' · ' + data.matched + '/' + data.total;
+      meta.textContent = 'PIN ' + data.pin + ' · Cartó #' + data.cardNumber + ' · ' + data.matched + '/' + data.total;
       item.append(top, meta);
       if(data.validationUrl){
         item.dataset.validationUrl = data.validationUrl;
       }
-      if(!data.valid && Array.isArray(data.missingSample) && data.missingSample.length){
+      if(!winner && Array.isArray(data.missingSample) && data.missingSample.length){
         const ul = document.createElement('ul');
         data.missingSample.forEach((s)=>{const li=document.createElement('li');li.textContent=s.artist+' — '+s.title;ul.appendChild(li);});
         item.appendChild(ul);
@@ -832,7 +850,7 @@ function renderValidateBatchHtml(nonce) {
         const copyBtn = document.createElement('button');
         copyBtn.type = 'button';
         copyBtn.dataset.action = 'copy-link';
-        copyBtn.textContent = 'Copiar enllac';
+        copyBtn.textContent = 'Copiar enllaç';
         actions.appendChild(copyBtn);
         item.appendChild(actions);
       }
@@ -841,12 +859,13 @@ function renderValidateBatchHtml(nonce) {
         checkedAt: Number(data.checkedAt || Date.now()),
         pin: data.pin || '',
         cardNumber: data.cardNumber || '',
-        valid: Boolean(data.valid),
+        result: verdict,
         matched: Number(data.matched || 0),
         total: Number(data.total || 0),
         missing: Array.isArray(data.missingSample) ? data.missingSample.map((s)=> (s.artist || '') + ' - ' + (s.title || '')) : [],
       });
-      playFeedback(Boolean(data.valid));
+      playFeedback(winner);
+      setStatus(verdict + ' · Cartó #' + data.cardNumber);
       applyFilters();
     }
     async function validateDs(d,s){
@@ -862,7 +881,6 @@ function renderValidateBatchHtml(nonce) {
       if(!q){ setStatus('QR no reconegut'); return; }
       try{
         await validateDs(q.d, q.s);
-        setStatus('QR validat');
       }catch(err){
         setStatus(err.message);
       }
@@ -933,7 +951,10 @@ function renderValidateBatchHtml(nonce) {
     }
     startBtn.addEventListener('click', async()=>{ try{ await startCam(); }catch(e){ setStatus(e.message || 'No es pot obrir la camera'); }});
     stopBtn.addEventListener('click', stopCam);
-    clearBtn.addEventListener('click', ()=>{ resultsEl.innerHTML=''; rows.length = 0; seen.clear(); applyFilters(); });
+    clearBtn.addEventListener('click', ()=>{
+      if(rows.length && !confirm('Esborrar ' + rows.length + ' resultats? Exporta el CSV abans si els necessites.')) return;
+      resultsEl.innerHTML=''; rows.length = 0; seen.clear(); applyFilters();
+    });
     exportCsvBtn.addEventListener('click', exportCsv);
     resultsEl.addEventListener('click', async (event) => {
       const btn = event.target.closest('button[data-action="copy-link"]');
@@ -1026,7 +1047,7 @@ function renderPlayCardHtml(pin, card, nonce) {
     button:active{transform:translate(3px,3px);box-shadow:none}
     button:disabled{opacity:.4;cursor:not-allowed}
     #claimLine{background:var(--accent)}
-    #claimBingo{background:var(--green);color:#fff}
+    #claimBingo{background:var(--brand);color:var(--ink)}
     button svg{width:18px;height:18px}
     .status{margin-top:18px;text-align:center;font-size:18px;font-weight:800;min-height:24px}
     @media(max-width:430px){.grid{gap:6px}.cell{padding:8px 4px}.title{font-size:12px}.artist{font-size:10px}}
@@ -1049,10 +1070,10 @@ function renderPlayCardHtml(pin, card, nonce) {
 
     <div class="actions">
       <button id="claimLine"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg> Reclamar línia</button>
-      <button id="claimBingo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg> BINGO!</button>
+      <button id="claimBingo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg> QUINA!</button>
     </div>
 
-    <div id="status" class="status"></div>
+    <div id="status" class="status" role="status" aria-live="polite"></div>
   </div>
 
   <script nonce="${nonce}">
@@ -1135,14 +1156,15 @@ function renderPlayCardHtml(pin, card, nonce) {
         });
         const data = await res.json();
         if (res.ok) {
-          status.textContent = data.valid ? \`\${type.toUpperCase()} vàlid!\` : \`\${type.toUpperCase()} no vàlid\`;
+          const label = type === 'linea' ? 'Línia' : 'Quina';
+          status.textContent = data.valid ? \`\${label} vàlida! Ensenya-ho al locutor.\` : \`\${label} no vàlida\`;
         } else {
           status.textContent = data.error || 'Error';
         }
       } catch (err) {
-        status.textContent = 'Error de connexió';
+        status.textContent = "No s'ha enviat. Comprova la Wi-Fi i torna-ho a provar.";
       }
-      setTimeout(() => status.textContent = '', 5000);
+      // The result stays on screen so the player can show it to the host.
     }
 
     function refreshDrawn() {
@@ -1171,15 +1193,11 @@ function renderPlayCardHtml(pin, card, nonce) {
     document.getElementById('claimLine').addEventListener('click', () => claim('linea'));
     document.getElementById('claimBingo').addEventListener('click', () => claim('bingo'));
 
-    // Initial load
-    fetch(\`/api/sessions/\${pin}/drawn\`)
-      .then(r => r.json())
-      .then(d => {
-        drawnSongs = d.drawn || [];
-        updateDrawn();
-        updateNowPlaying();
-        connectSSE();
-      });
+    // Initial load. SSE connects even if this first fetch fails (flaky Wi-Fi);
+    // its session.snapshot event resyncs the card. Phones waking from sleep resync too.
+    refreshDrawn();
+    connectSSE();
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshDrawn(); });
   </script>
 </body>
 </html>`;

@@ -130,6 +130,7 @@ try {
   assert.equal(validation1.valid, false);
   assert.equal(validation1.total, 15);
   assert.equal(validation1.matched >= 1, true);
+  assert.equal(validation1.lines, 0);
 
   const claim = await api('/api/sessions/TEST1/claims', {
     method: 'POST',
@@ -175,6 +176,8 @@ try {
   const validation2 = await api(`/api/validate-card?d=${encodeURIComponent(d)}&s=${encodeURIComponent(s)}`);
   assert.equal(validation2.valid, true);
   assert.equal(validation2.matched, validation2.total);
+  // A full 3x5 card has every row complete: scanner shows QUINA, never a false 'no'.
+  assert.equal(validation2.lines, 3);
 
   const tampered = await fetch(`${BASE}/api/validate-card?d=${encodeURIComponent(`${d}x`)}&s=${encodeURIComponent(s)}`);
   assert.equal(tampered.status, 400);

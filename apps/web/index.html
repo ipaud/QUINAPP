@@ -79,7 +79,7 @@
     <!-- Pas 2 -->
     <div class="wiz-panel" data-wiz="2" hidden>
       <h2>Enganxa la llista de reproducció</h2>
-      <p class="hint">Copia l'enllaç d'una playlist de Spotify (o YouTube).</p>
+      <p class="hint">Copia l'enllaç d'una playlist de Spotify.</p>
       <label for="wizPlaylistUrl">URL de la playlist</label>
       <input id="wizPlaylistUrl" placeholder="https://open.spotify.com/playlist/..." />
       <button id="wizImport" class="btn btn-spotify full" type="button">
@@ -110,10 +110,10 @@
       <h2>Genera els cartons</h2>
       <label for="wizCount">Quants cartons vols?</label>
       <input id="wizCount" type="number" min="1" max="200" value="20" />
-      <button id="wizGenerate" class="btn btn-spotify big-btn full">Generar cartons i PDF</button>
+      <button id="wizGenerate" class="btn btn-primary big-btn full">Generar cartons i PDF</button>
       <div id="wizGenResult" class="wiz-result" hidden>
         <p class="wiz-pin">PIN de la partida: <strong id="wizPin">—</strong></p>
-        <p class="hint">Comparteix aquest PIN o el QR (pestanya Mòbil) amb els jugadors.</p>
+        <p class="hint">Imprimeix i reparteix els cartons. Es pot jugar en paper o amb el mòbil: escaneja el QR del cartó i prem «Jugar amb el mòbil».</p>
         <button id="wizDownloadPdf" class="btn btn-ghost full">Tornar a descarregar el PDF</button>
       </div>
       <div class="wiz-nav">
@@ -132,17 +132,17 @@
         <div id="wizCounter" class="event-big-counter">0 / —</div>
       </div>
       <p id="wizSpotifyHint" class="hint"></p>
-      <div class="wiz-next-hero">
-        <div class="now-label">SEGÜENT</div>
+      <!-- Tancat per defecte: si es projecta la pantalla, el públic no veu la següent. -->
+      <details class="wiz-next-hero">
+        <summary class="now-label">Veure la següent (només locutor)</summary>
         <div id="wizNextSong" class="wiz-next-song">—</div>
-      </div>
-      <button id="wizDrawNext" class="btn btn-spotify big-btn full"><span data-icon="play"></span> Següent cançó</button>
+      </details>
+      <button id="wizDrawNext" class="btn btn-primary big-btn full"><span data-icon="play"></span> Següent cançó</button>
       <label class="wiz-snippet"><input id="wizSnippet" type="checkbox" checked /> Reproduir només un fragment de 30 segons</label>
       <div class="btn-row">
         <button id="wizTogglePlay" class="btn btn-ghost"><span data-icon="play"></span> Reproduir / Pausar</button>
-        <button id="wizShare" class="btn btn-accent">Compartir QR</button>
+        <button id="wizCheck" class="btn btn-accent"><span data-icon="scan-line"></span> Validar cartons amb el mòbil</button>
       </div>
-      <button id="wizCheck" class="btn btn-ghost full"><span data-icon="scan-line"></span> Comprovar cartó (escàner QR)</button>
       <div class="wiz-history-wrap">
         <div class="queue-title">Historial de cançons sonades</div>
         <ol id="wizHistory" class="drawn-list"><li class="drawn-empty">Encara cap cançó.</li></ol>
@@ -370,7 +370,7 @@
 
       <div class="game-actions">
         <button id="claimLine" class="btn btn-accent">Reclamar línia</button>
-        <button id="claimBingo" class="btn btn-primary">BINGO!</button>
+        <button id="claimBingo" class="btn btn-primary">QUINA!</button>
         <button id="downloadCurrentPdf" class="btn btn-ghost">PDF cartó</button>
         <button id="showCardQr" class="btn btn-ghost">QR cartó</button>
       </div>
