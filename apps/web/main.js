@@ -2253,7 +2253,6 @@ document.addEventListener('keydown', (event) => {
     }
     if (W.next1) W.next1.disabled = !connected;
     if (connected) checkSpotifyPlan();
-    else if (W.clientIdWrap && !currentSpotifyClientId()) W.clientIdWrap.hidden = false;
   }
   W.spotConnect?.addEventListener('click', async () => {
     try {

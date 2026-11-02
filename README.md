@@ -61,10 +61,10 @@ Instal·ladors a la **[darrera Release](https://github.com/ipaud/QUINAPP/release
 
 - <img src="docs/readme-icons/compass.svg" width="16" alt=""> **Assistent guiat de 5 passos** (vista per defecte): Spotify → Playlist → Cançons → Cartons → Jugar.
   Pensat per a usuaris sense coneixements tècnics. Botó **Mode avançat** per a la consola d'operador.
-- <img src="docs/readme-icons/headphones.svg" width="16" alt=""> **Spotify opcional** — cada organitzador connecta **la seva** app de Spotify (Client ID propi,
-  guia pas a pas dins l'assistent) per importar llistes i reproduir dins el navegador (Web Playback SDK,
-  requereix Premium; l'assistent avisa en connectar). **Sense Spotify:** escriu o enganxa les cançons, o
-  puja un CSV/Excel.
+- <img src="docs/readme-icons/headphones.svg" width="16" alt=""> **Spotify integrat** — botó «Connectar» i **popup de consentiment** (PKCE; el Client ID de
+  QUINAPP ja ve inclòs, l'usuari no escriu res). Importa llistes i, amb **compte Premium** de cada
+  usuari, reprodueix dins el navegador (l'assistent avisa en connectar si el compte no és Premium).
+  **Sense Spotify:** escriu o enganxa les cançons, o puja un CSV/Excel.
 - <img src="docs/readme-icons/play.svg" width="16" alt=""> **Reproducció automàtica** en sortejar, amb mode **fragment de 30 s** opcional que comença per la
   part reconeixible (≈1/3 de la cançó, sol coincidir amb la tornada).
 - <img src="docs/readme-icons/dices.svg" width="16" alt=""> **Sorteig determinista i reproduïble** — basat en *seed*; mateixa seed → mateix ordre.
@@ -197,7 +197,7 @@ local; els més rellevants:
 
 La primera pantalla és un **assistent** pensat per a qualsevol usuari:
 
-**1. Spotify (opcional)** — connecta el teu compte (el primer cop, guia per crear el teu *Client ID*); avisa si el compte no és Premium. O bé «Escriure-les o pujar un fitxer».
+**1. Spotify** — botó «Connectar» i popup de consentiment; avisa si el compte no és Premium. O bé «Escriure-les o pujar un fitxer».
 
 <img src="docs/screenshots/10-wizard-spotify.png" alt="Pas 1 · Connectar Spotify" width="560" />
 
@@ -222,18 +222,19 @@ La primera pantalla és un **assistent** pensat per a qualsevol usuari:
 
 > L'estat de l'assistent es desa al navegador: si recarregues a mig flux, recupera el pas i les dades.
 
-> <img src="docs/readme-icons/headphones.svg" width="16" alt=""> **Spotify és opcional i cada organitzador hi posa el seu compte.** Els instal·ladors
-> **no** porten cap *Client ID*. Qui vulgui importar llistes de Spotify crea la seva app (un cop,
-> uns 5 minuts; l'assistent mostra els passos):
+> <img src="docs/readme-icons/headphones.svg" width="16" alt=""> **Spotify.** QUINAPP porta el *Client ID* de la seva pròpia app de Spotify
+> (`BUILTIN_SPOTIFY_CLIENT_ID` a `apps/api/src/server.mjs`; en PKCE no és secret). L'usuari final
+> només prem «Connectar» i veu el **popup de consentiment** de Spotify. Per reproduir dins
+> l'app, cada usuari necessita **el seu compte Premium**.
 >
-> 1. Crea una app a <https://developer.spotify.com/dashboard> (marca *Web API* i *Web Playback SDK*).
-> 2. A *Redirect URIs* posa `http://127.0.0.1:3000/` (Spotify només accepta https o l'IP de loopback).
-> 3. Enganxa el *Client ID* a l'assistent; es desa al navegador.
->    Alternativa per a instal·lacions pròpies: arrenca amb `SPOTIFY_CLIENT_ID=EL_TEU_ID npm start`.
+> Manteniment de l'app de Spotify (<https://developer.spotify.com/dashboard>):
+> - *Redirect URIs*: `http://127.0.0.1:3000/` (Spotify només accepta https o l'IP de loopback).
+> - En **mode desenvolupament** només poden entrar els comptes afegits a *User Management*
+>   (màxim 25). Per obrir-la a tothom cal l'*extended quota* de Spotify.
+> - Instal·lacions pròpies poden fer servir una altra app: `SPOTIFY_CLIENT_ID=EL_TEU_ID npm start`.
 >
-> Una app de Spotify en mode desenvolupament només funciona amb el compte que l'ha creat i
-> els que hi afegeixis al dashboard. **Sense Spotify:** «Escriure-les o pujar un fitxer» porta al
-> pas de cançons, on pots enganxar una llista (`Artista - Títol` per línia) o pujar un CSV/Excel.
+> **Sense Spotify:** «Escriure-les o pujar un fitxer» porta al pas de cançons, on pots enganxar
+> una llista (`Artista - Títol` per línia) o pujar un CSV/Excel.
 
 ### Reproducció (Spotify Web Playback SDK)
 

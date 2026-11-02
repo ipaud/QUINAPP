@@ -37,6 +37,12 @@ const WEB_ROOT = path.resolve(__dirname, '../../web');
 
 migrate();
 
+// QUINAPP's own Spotify app, shipped with every install so hosts only press
+// "Connectar" and log in with their account (Premium for in-app playback).
+// A PKCE Client ID is public by design: it grants no access on its own.
+// SPOTIFY_CLIENT_ID overrides it for self-hosted builds.
+const BUILTIN_SPOTIFY_CLIENT_ID = '55fd39eb5e914973affb017f5b9d1fd6';
+
 const sseClients = new Map();
 const serverStartedAt = Date.now();
 
@@ -1649,7 +1655,7 @@ const requestHandler = async (req, res) => {
       }
 
       if (req.method === 'GET' && pathname === '/api/tools/spotify-config') {
-        const clientId = String(process.env.SPOTIFY_CLIENT_ID || '').trim();
+        const clientId = String(process.env.SPOTIFY_CLIENT_ID || BUILTIN_SPOTIFY_CLIENT_ID).trim();
         json(res, 200, {
           clientId,
           configured: Boolean(clientId),
