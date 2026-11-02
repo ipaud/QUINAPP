@@ -28,7 +28,7 @@ async function waitForServer() {
 async function api(path, options = {}) {
   const res = await fetch(`${BASE}${path}`, {
     method: options.method || 'GET',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...options.headers },
     body: options.body ? JSON.stringify(options.body) : undefined,
   });
   const contentType = res.headers.get('content-type') || '';
@@ -79,11 +79,34 @@ try {
     body: { pin: 'TEST1', songsText, rows: 3, cols: 5, seed: 'seed1' },
   });
   assert.equal(created.pin, 'TEST1');
+  assert.match(created.operatorToken, /^[0-9a-f]{48}$/);
+  const op = { 'X-Quinapp-Operator': created.operatorToken };
 
-  const cards = await api('/api/sessions/TEST1/cards', { method: 'POST', body: { count: 2 } });
+  // Players know the session PIN; without the operator token they must not
+  // peek, draw, add cards or overwrite the session.
+  for (const [method, path, body] of [
+    ['GET', '/api/sessions/TEST1/draw/peek'],
+    ['POST', '/api/sessions/TEST1/draw/next'],
+    ['POST', '/api/sessions/TEST1/draw/undo', {}],
+    ['POST', '/api/sessions/TEST1/cards', { count: 1 }],
+    ['POST', '/api/sessions/TEST1/import-songs', { songs: [] }],
+    ['POST', '/api/sessions', { pin: 'TEST1', songsText, rows: 3, cols: 5 }],
+  ]) {
+    const denied = await fetch(`${BASE}${path}`, {
+      method,
+      headers: { 'Content-Type': 'application/json', 'X-Quinapp-Operator': 'f'.repeat(48) },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    assert.equal(denied.status, 403, `${method} ${path} should need operator token`);
+  }
+
+  const cards = await api('/api/sessions/TEST1/cards', { method: 'POST', body: { count: 2 }, headers: op });
   assert.equal(cards.cards.length, 2);
 
-  const draw = await api('/api/sessions/TEST1/draw/next', { method: 'POST' });
+  const peek = await api('/api/sessions/TEST1/draw/peek', { headers: op });
+  assert.equal(peek.done, false);
+
+  const draw = await api('/api/sessions/TEST1/draw/next', { method: 'POST', headers: op });
   assert.equal(draw.done, false);
   assert.equal(draw.drawn, 1);
 
@@ -141,7 +164,7 @@ try {
   assert.equal(parsedXlsx.songs.length, 15);
 
   for (let i = 0; i < 20; i += 1) {
-    const next = await api('/api/sessions/TEST1/draw/next', { method: 'POST' });
+    const next = await api('/api/sessions/TEST1/draw/next', { method: 'POST', headers: op });
     if (next.done) break;
   }
   const validation2 = await api(`/api/validate-card?d=${encodeURIComponent(d)}&s=${encodeURIComponent(s)}`);

@@ -324,21 +324,53 @@ function setServerIndicator(ok) {
 
 // ── API helper ────────────────────────────────────────────────────────────────
 
+// Operator token per session PIN, issued by POST /api/sessions. Kept in
+// localStorage so a reload on the locutor's machine keeps control of the game.
+const OPERATOR_TOKENS_KEY = 'quinapp-operator-tokens';
+
+function loadOperatorTokens() {
+  try {
+    return JSON.parse(localStorage.getItem(OPERATOR_TOKENS_KEY)) || {};
+  } catch {
+    return {};
+  }
+}
+
+function saveOperatorToken(pin, token) {
+  try {
+    localStorage.setItem(OPERATOR_TOKENS_KEY, JSON.stringify({ ...loadOperatorTokens(), [pin]: token }));
+  } catch {
+    // storage blocked: token lives only for this request; admin PIN still works
+  }
+}
+
+function apiHeaders(path, body) {
+  const headers = { 'Content-Type': 'application/json' };
+  const pinMatch = path.match(/^\/api\/sessions\/([^/?]+)/);
+  const pin = pinMatch ? decodeURIComponent(pinMatch[1]) : String(body?.pin || '').trim();
+  const token = pin && loadOperatorTokens()[pin];
+  if (token) headers['X-Quinapp-Operator'] = token;
+  const adminPin = els.adminPin?.value?.trim();
+  if (adminPin) headers['X-Quinapp-Admin-Pin'] = adminPin;
+  return headers;
+}
+
 async function api(path, options = {}) {
   const res = await fetch(path, {
     method: options.method || 'GET',
-    headers: { 'Content-Type': 'application/json' },
+    headers: apiHeaders(path, options.body),
     body: options.body ? JSON.stringify(options.body) : null,
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.error || 'Error API');
+  if (data.operatorToken && data.pin) saveOperatorToken(data.pin, data.operatorToken);
   return data;
 }
 
 async function apiBinary(path, options = {}) {
   const res = await fetch(path, {
     method: options.method || 'GET',
-    headers: { 'Content-Type': 'application/json' },
+    headers: apiHeaders(path, options.body),
     body: options.body ? JSON.stringify(options.body) : null,
   });
   if (!res.ok) {

@@ -24,11 +24,10 @@ import {
   listCards,
   listDrawnSongs,
   listAuditLogs,
-  sessionHasAdminPin,
+  authorizeOperator,
   resetSessionRound,
   deleteSession,
   analyzeSongsQuality,
-  requireAdmin,
 } from './data/repository.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -48,6 +47,13 @@ const RATE_WINDOW_MS = 60_000;
 // Simple in-memory sliding-window rate limiter (per IP, per key).
 // Not persistent across restarts; good enough for a local/LAN server.
 const _rateBuckets = new Map(); // key → [timestamps]
+
+function operatorAuth(req, body = {}) {
+  return {
+    token: String(req.headers['x-quinapp-operator'] || ''),
+    adminPin: String(body.adminPin || req.headers['x-quinapp-admin-pin'] || ''),
+  };
+}
 
 function rateLimit(ip, key, maxHits, windowMs) {
   const bucketKey = `${key}::${ip}`;
@@ -1273,9 +1279,11 @@ const requestHandler = async (req, res) => {
       if (req.method === 'POST' && pathname === '/api/sessions') {
         rateLimit(clientIp(req), 'create-session', 10, RATE_WINDOW_MS);
         const body = await parseBody(req);
-        const session = createSession(body);
+        const existingPin = String(body.pin || '').trim();
+        if (existingPin && getSession(existingPin)) authorizeOperator(existingPin, operatorAuth(req, body));
+        const { operatorToken, ...session } = createSession(body);
         broadcast(sseClients, session.pin, 'session.updated', { session });
-        json(res, 201, session);
+        json(res, 201, { ...session, operatorToken });
         return;
       }
 
@@ -1334,6 +1342,7 @@ const requestHandler = async (req, res) => {
         const pin = decodeURIComponent(cardsMatch[1]);
         if (req.method === 'POST') {
           const body = await parseBody(req);
+          authorizeOperator(pin, operatorAuth(req, body));
           const cards = createCards(pin, body.count);
           broadcast(sseClients, pin, 'cards.created', { count: cards.length, cards });
           json(res, 201, { cards });
@@ -1418,6 +1427,7 @@ const requestHandler = async (req, res) => {
       if (req.method === 'POST' && drawMatch) {
         const pin = decodeURIComponent(drawMatch[1]);
         rateLimit(clientIp(req), `draw::${pin}`, 60, RATE_WINDOW_MS);
+        authorizeOperator(pin, operatorAuth(req));
         const result = drawNextSong(pin);
         if (!result.done) {
           broadcast(sseClients, pin, 'draw.next', result);
@@ -1429,6 +1439,8 @@ const requestHandler = async (req, res) => {
       const drawPeekMatch = pathname.match(/^\/api\/sessions\/([^/]+)\/draw\/peek$/);
       if (req.method === 'GET' && drawPeekMatch) {
         const pin = decodeURIComponent(drawPeekMatch[1]);
+        rateLimit(clientIp(req), `draw::${pin}`, 60, RATE_WINDOW_MS);
+        authorizeOperator(pin, operatorAuth(req));
         const result = peekNextSong(pin);
         json(res, 200, result);
         return;
@@ -1439,11 +1451,7 @@ const requestHandler = async (req, res) => {
         const pin = decodeURIComponent(undoMatch[1]);
         const body = await parseBody(req);
         rateLimit(clientIp(req), `undo::${pin}`, 10, RATE_WINDOW_MS);
-        // Require admin PIN only when the session is configured with one.
-        if (sessionHasAdminPin(pin)) {
-          if (!body.adminPin) throw new Error('Cal el PIN admin per fer undo');
-          requireAdmin(pin, String(body.adminPin));
-        }
+        authorizeOperator(pin, operatorAuth(req, body));
         const result = undoLastDraw(pin, 'locutor');
         broadcast(sseClients, pin, 'draw.undo', result);
         json(res, 200, result);
@@ -1465,6 +1473,7 @@ const requestHandler = async (req, res) => {
       if (req.method === 'POST' && importSongsMatch) {
         const pin = decodeURIComponent(importSongsMatch[1]);
         const body = await parseBody(req);
+        authorizeOperator(pin, operatorAuth(req, body));
         const session = importSongsToSession(pin, body.songs || []);
         broadcast(sseClients, pin, 'session.updated', { session });
         json(res, 200, session);
@@ -1692,7 +1701,7 @@ const requestHandler = async (req, res) => {
       notFound(res);
       return;
     } catch (error) {
-      json(res, 400, { error: error.message || 'Peticion invalida' });
+      json(res, error.status || 400, { error: error.message || 'Peticion invalida' });
       return;
     }
   }

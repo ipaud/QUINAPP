@@ -1,5 +1,4 @@
-import { randomUUID } from 'node:crypto';
-import { createHash } from 'node:crypto';
+import { randomUUID, randomBytes, createHash, timingSafeEqual } from 'node:crypto';
 import {
   parseSongsFromText,
   generateCardSongs,
@@ -34,11 +33,29 @@ function hashAdminPin(pin) {
   return createHash('sha256').update(String(pin || ''), 'utf8').digest('hex');
 }
 
+function hashEquals(a, b) {
+  return timingSafeEqual(Buffer.from(a, 'hex'), Buffer.from(b, 'hex'));
+}
+
+// Operator routes (draw, peek, undo, import, cards) need the token issued at
+// session creation, or the admin PIN when operating from another device.
+export function authorizeOperator(pin, { token = '', adminPin = '' } = {}) {
+  const row = db.prepare('SELECT admin_pin_hash, operator_token_hash FROM sessions WHERE pin = ?').get(pin);
+  if (!row) throw new Error('Sesion no encontrada');
+  // ponytail: sessions created before operator tokens stay open; recreate them to lock.
+  if (!row.operator_token_hash && !row.admin_pin_hash) return;
+  if (token && row.operator_token_hash && hashEquals(hashAdminPin(token), row.operator_token_hash)) return;
+  if (adminPin && row.admin_pin_hash && hashEquals(hashAdminPin(adminPin), row.admin_pin_hash)) return;
+  const err = new Error("No autoritzat: obre la sessió des de l'ordinador del locutor o indica el PIN admin");
+  err.status = 403;
+  throw err;
+}
+
 export function requireAdmin(pin, adminPin) {
   const row = db.prepare('SELECT admin_pin_hash FROM sessions WHERE pin = ?').get(pin);
   if (!row) throw new Error('Sesion no encontrada');
   if (!row.admin_pin_hash) throw new Error('Sesion sin PIN admin configurado');
-  if (hashAdminPin(adminPin) !== row.admin_pin_hash) throw new Error('PIN admin incorrecto');
+  if (!hashEquals(hashAdminPin(adminPin), row.admin_pin_hash)) throw new Error('PIN admin incorrecto');
 }
 
 function logAudit(pin, actor, action, details = {}) {
@@ -86,11 +103,12 @@ export function createSession({ pin, songsText, rows = 3, cols = 5, seed, preven
   }
 
   const createdAt = new Date().toISOString();
+  const operatorToken = randomBytes(24).toString('hex');
   const tx = db.transaction(() => {
     db.prepare('DELETE FROM sessions WHERE pin = ?').run(safePin);
     db.prepare(
-      'INSERT INTO sessions (pin, rows, cols, seed, prevent_dupes, created_at, admin_pin_hash) VALUES (?, ?, ?, ?, ?, ?, ?)'
-    ).run(safePin, safeRows, safeCols, safeSeed, preventDupes ? 1 : 0, createdAt, adminPin ? hashAdminPin(adminPin) : null);
+      'INSERT INTO sessions (pin, rows, cols, seed, prevent_dupes, created_at, admin_pin_hash, operator_token_hash) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+    ).run(safePin, safeRows, safeCols, safeSeed, preventDupes ? 1 : 0, createdAt, adminPin ? hashAdminPin(adminPin) : null, hashAdminPin(operatorToken));
 
     const insertSong = db.prepare(
       'INSERT INTO session_songs (session_pin, song_order, artist, title, provider, source_url, uri) VALUES (?, ?, ?, ?, ?, ?, ?)'
@@ -118,6 +136,7 @@ export function createSession({ pin, songsText, rows = 3, cols = 5, seed, preven
     preventDupes: Boolean(preventDupes),
     songs: songs.length,
     createdAt,
+    operatorToken,
   };
 }
 

@@ -110,10 +110,9 @@ export function migrate() {
   `);
 
   // Compatibilidad hacia atrás para sesiones existentes.
-  const cols = db.prepare('PRAGMA table_info(sessions)').all();
-  const hasAdminPinHash = cols.some((c) => c.name === 'admin_pin_hash');
-  if (!hasAdminPinHash) {
-    db.exec('ALTER TABLE sessions ADD COLUMN admin_pin_hash TEXT');
+  const cols = db.prepare('PRAGMA table_info(sessions)').all().map((c) => c.name);
+  for (const col of ['admin_pin_hash', 'operator_token_hash']) {
+    if (!cols.includes(col)) db.exec(`ALTER TABLE sessions ADD COLUMN ${col} TEXT`);
   }
 }
 
