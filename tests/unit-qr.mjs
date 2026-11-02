@@ -34,11 +34,11 @@ try {
   assert.equal(typeof payload.songsHash, 'string');
   assert.equal(payload.songsHash.length, 16);
 
-  assert.throws(() => decodeAndVerifyQrQuery(`${d}x`, s), /firma incorrecta/i);
-  assert.throws(() => decodeAndVerifyQrQuery(d, `${s}a`), /firma incorrecta/i);
+  assert.throws(() => decodeAndVerifyQrQuery(`${d}x`, s), /no és d’aquesta partida/i);
+  assert.throws(() => decodeAndVerifyQrQuery(d, `${s}a`), /no és d’aquesta partida/i);
 
   process.env.QR_HMAC_SECRET = 'unit-secret-2';
-  assert.throws(() => decodeAndVerifyQrQuery(d, s), /firma incorrecta/i);
+  assert.throws(() => decodeAndVerifyQrQuery(d, s), /no és d’aquesta partida/i);
 
   console.log('unit-qr passed');
 } finally {

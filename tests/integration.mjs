@@ -96,6 +96,8 @@ try {
     ['POST', '/api/sessions/TEST1/cards', { count: 1 }],
     ['POST', '/api/sessions/TEST1/import-songs', { songs: [] }],
     ['POST', '/api/sessions', { pin: 'TEST1', songsText, rows: 3, cols: 5 }],
+    ['POST', '/api/sessions/TEST1/reset-round', {}],
+    ['DELETE', '/api/sessions/TEST1', {}],
   ]) {
     const denied = await fetch(`${BASE}${path}`, {
       method,
@@ -197,6 +199,10 @@ try {
   });
   const proArr = await proPdfRes.arrayBuffer();
   assert.ok(proArr.byteLength > 700);
+
+  // Sessions without an admin PIN (wizard) can still be reset by their operator.
+  const reset = await api('/api/sessions/TEST1/reset-round', { method: 'POST', body: {}, headers: op });
+  assert.equal(reset.drawn, 0);
 
   console.log('Integration test passed');
 } finally {

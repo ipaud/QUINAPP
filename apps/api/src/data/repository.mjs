@@ -41,7 +41,7 @@ function hashEquals(a, b) {
 // session creation, or the admin PIN when operating from another device.
 export function authorizeOperator(pin, { token = '', adminPin = '' } = {}) {
   const row = db.prepare('SELECT admin_pin_hash, operator_token_hash FROM sessions WHERE pin = ?').get(pin);
-  if (!row) throw new Error('Sesion no encontrada');
+  if (!row) throw new Error('No hi ha cap partida amb aquest PIN');
   // ponytail: sessions created before operator tokens stay open; recreate them to lock.
   if (!row.operator_token_hash && !row.admin_pin_hash) return;
   if (token && row.operator_token_hash && hashEquals(hashAdminPin(token), row.operator_token_hash)) return;
@@ -49,13 +49,6 @@ export function authorizeOperator(pin, { token = '', adminPin = '' } = {}) {
   const err = new Error("No autoritzat: obre la sessió des de l'ordinador del locutor o indica el PIN admin");
   err.status = 403;
   throw err;
-}
-
-export function requireAdmin(pin, adminPin) {
-  const row = db.prepare('SELECT admin_pin_hash FROM sessions WHERE pin = ?').get(pin);
-  if (!row) throw new Error('Sesion no encontrada');
-  if (!row.admin_pin_hash) throw new Error('Sesion sin PIN admin configurado');
-  if (!hashEquals(hashAdminPin(adminPin), row.admin_pin_hash)) throw new Error('PIN admin incorrecto');
 }
 
 function logAudit(pin, actor, action, details = {}) {
@@ -96,10 +89,10 @@ export function createSession({ pin, songsText, rows = 3, cols = 5, seed, preven
   const safePin = String(pin || '').trim();
 
   if (!safePin || safePin.length < 3) {
-    throw new Error('PIN invalido (minimo 3 caracteres)');
+    throw new Error('El PIN ha de tenir com a mínim 3 caràcters');
   }
   if (songs.length < safeRows * safeCols) {
-    throw new Error(`Se necesitan al menos ${safeRows * safeCols} canciones`);
+    throw new Error(`Calen almenys ${safeRows * safeCols} cançons per omplir els cartons`);
   }
 
   const createdAt = new Date().toISOString();
@@ -161,13 +154,13 @@ export function getSession(pin) {
 
 export function sessionHasAdminPin(pin) {
   const row = db.prepare('SELECT admin_pin_hash FROM sessions WHERE pin = ?').get(pin);
-  if (!row) throw new Error('Sesion no encontrada');
+  if (!row) throw new Error('No hi ha cap partida amb aquest PIN');
   return Boolean(row.admin_pin_hash);
 }
 
 export function createCards(pin, count = 1) {
   const session = db.prepare('SELECT pin, rows, cols, seed, prevent_dupes FROM sessions WHERE pin = ?').get(pin);
-  if (!session) throw new Error('Sesion no encontrada');
+  if (!session) throw new Error('No hi ha cap partida amb aquest PIN');
 
   const requested = Math.max(1, Math.min(200, Number(count) || 1));
   const songs = getSessionSongs(pin);
@@ -209,7 +202,7 @@ export function createCards(pin, count = 1) {
 
 export function drawNextSong(pin) {
   const session = db.prepare('SELECT pin, seed FROM sessions WHERE pin = ?').get(pin);
-  if (!session) throw new Error('Sesion no encontrada');
+  if (!session) throw new Error('No hi ha cap partida amb aquest PIN');
 
   const insertDraw = db.prepare(
     'INSERT INTO draws (session_pin, draw_order, artist, title, provider, source_url, uri, drawn_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
@@ -255,12 +248,12 @@ export function drawNextSong(pin) {
     }
   }
 
-  throw new Error('No se pudo completar el sorteo por concurrencia');
+  throw new Error('No s’ha pogut treure la cançó. Torna-ho a provar.');
 }
 
 export function peekNextSong(pin) {
   const session = db.prepare('SELECT pin, seed FROM sessions WHERE pin = ?').get(pin);
-  if (!session) throw new Error('Sesion no encontrada');
+  if (!session) throw new Error('No hi ha cap partida amb aquest PIN');
   const allSongs = getSessionSongs(pin);
   const drawnSongs = getSessionDrawn(pin);
   const drawnKeys = new Set(drawnSongs.map(songKey));
@@ -276,10 +269,10 @@ export function peekNextSong(pin) {
 
 export function evaluateClaim(pin, cardId, type) {
   const session = db.prepare('SELECT rows, cols FROM sessions WHERE pin = ?').get(pin);
-  if (!session) throw new Error('Sesion no encontrada');
+  if (!session) throw new Error('No hi ha cap partida amb aquest PIN');
 
   const card = db.prepare('SELECT id FROM cards WHERE id = ? AND session_pin = ?').get(cardId, pin);
-  if (!card) throw new Error('Carton no encontrado');
+  if (!card) throw new Error('Aquest cartó no és d’aquesta partida');
 
   const cardSongs = getCardSongs(cardId);
   const drawnSongs = getSessionDrawn(pin);
@@ -310,7 +303,7 @@ export function evaluateClaim(pin, cardId, type) {
 
 export function undoLastDraw(pin, actor = 'locutor') {
   const session = db.prepare('SELECT pin FROM sessions WHERE pin = ?').get(pin);
-  if (!session) throw new Error('Sesion no encontrada');
+  if (!session) throw new Error('No hi ha cap partida amb aquest PIN');
   const last = db.prepare('SELECT id, draw_order, artist, title FROM draws WHERE session_pin = ? ORDER BY draw_order DESC LIMIT 1').get(pin);
   if (!last) return { undone: false, drawn: 0 };
 
@@ -320,10 +313,10 @@ export function undoLastDraw(pin, actor = 'locutor') {
   return { undone: true, drawn };
 }
 
-export function resetSessionRound(pin, adminPin, actor = 'admin') {
-  requireAdmin(pin, adminPin);
+// Callers authorize first (authorizeOperator: operator token or admin PIN).
+export function resetSessionRound(pin, actor = 'admin') {
   const session = db.prepare('SELECT pin FROM sessions WHERE pin = ?').get(pin);
-  if (!session) throw new Error('Sesion no encontrada');
+  if (!session) throw new Error('No hi ha cap partida amb aquest PIN');
   const tx = db.transaction(() => {
     db.prepare('DELETE FROM cards WHERE session_pin = ?').run(pin);
     db.prepare('DELETE FROM draws WHERE session_pin = ?').run(pin);
@@ -334,10 +327,9 @@ export function resetSessionRound(pin, adminPin, actor = 'admin') {
   return getSession(pin);
 }
 
-export function deleteSession(pin, adminPin, actor = 'admin') {
-  requireAdmin(pin, adminPin);
+export function deleteSession(pin, actor = 'admin') {
   const session = db.prepare('SELECT pin FROM sessions WHERE pin = ?').get(pin);
-  if (!session) throw new Error('Sesion no encontrada');
+  if (!session) throw new Error('No hi ha cap partida amb aquest PIN');
   db.prepare('DELETE FROM sessions WHERE pin = ?').run(pin);
   // El borrado de sesión en cascada elimina todo; guardamos rastro global no asociado si no existe sesión.
   return { deleted: true, pin };
@@ -371,7 +363,7 @@ export function analyzeSongsQuality(songs, existingSongs = []) {
   input.forEach((song, index) => {
     const artist = String(song.artist || '').trim();
     const title = String(song.title || '').trim();
-    const safeSong = { ...song, artist: artist || '(artista)', title: title || '(cancion)' };
+    const safeSong = { ...song, artist: artist || '(sense artista)', title: title || '(sense títol)' };
     const key = songKey(safeSong);
     const nTitle = normalizeText(safeSong.title);
     const nArtist = normalizeText(safeSong.artist);
@@ -415,16 +407,16 @@ export function analyzeSongsQuality(songs, existingSongs = []) {
 
 export function importSongsToSession(pin, songs) {
   const session = db.prepare('SELECT pin, rows, cols FROM sessions WHERE pin = ?').get(pin);
-  if (!session) throw new Error('Sesion no encontrada');
+  if (!session) throw new Error('No hi ha cap partida amb aquest PIN');
   if (!Array.isArray(songs)) {
-    throw new Error(`Se necesitan al menos ${session.rows * session.cols} canciones`);
+    throw new Error(`Calen almenys ${session.rows * session.cols} cançons per omplir els cartons`);
   }
 
   const previousSongs = getSessionSongs(pin);
   const analysis = analyzeSongsQuality(songs, previousSongs);
   const finalSongs = analysis.unique;
   if (finalSongs.length < session.rows * session.cols) {
-    throw new Error(`Se necesitan al menos ${session.rows * session.cols} canciones`);
+    throw new Error(`Calen almenys ${session.rows * session.cols} cançons per omplir els cartons`);
   }
 
   const tx = db.transaction(() => {

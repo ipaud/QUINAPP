@@ -37,7 +37,7 @@ export function getQrSecret() {
     return cachedSecret;
   } catch (err) {
     if (process.env.NODE_ENV === 'production') {
-      throw new Error('No se pudo inicializar el secreto QR persistente');
+      throw new Error('No s’ha pogut crear el secret dels QR');
     }
     if (!warnedDevQrSecret) {
       warnedDevQrSecret = true;
@@ -105,17 +105,17 @@ export function buildPlayCardUrl(baseUrl, pin, cardId) {
 }
 
 export function decodeAndVerifyQrQuery(d, s) {
-  if (!d || !s) throw new Error('QR invalido: faltan parametros');
+  if (!d || !s) throw new Error('QR no vàlid: falten dades');
   const expected = signQrPayloadData(d);
-  if (!timingSafeHexEqual(expected, s)) throw new Error('QR invalido: firma incorrecta');
+  if (!timingSafeHexEqual(expected, s)) throw new Error('QR no vàlid: no és d’aquesta partida');
   let payload;
   try {
     payload = JSON.parse(b64urlDecodeToBuffer(d).toString('utf8'));
   } catch {
-    throw new Error('QR invalido: payload corrupto');
+    throw new Error('QR no vàlid: dades malmeses');
   }
   if (!payload || payload.v !== 1 || !payload.pin || !payload.cardId) {
-    throw new Error('QR invalido: payload incompleto');
+    throw new Error('QR no vàlid: dades incompletes');
   }
   return payload;
 }

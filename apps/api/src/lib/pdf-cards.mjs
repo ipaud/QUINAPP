@@ -194,7 +194,7 @@ async function drawCardInRectAsync(pdfDoc, page, session, card, rect, options = 
   for (let r = 0; r < rows; r += 1) {
     for (let c = 0; c < cols; c += 1) {
       const idx = r * cols + c;
-      const song = card.songs[idx] || { artist: '(artista)', title: '(cancion)' };
+      const song = card.songs[idx] || { artist: '(sense artista)', title: '(sense títol)' };
       const cx = ix + c * cellW;
       const cy = gridTop - (r + 1) * cellH;
 

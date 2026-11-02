@@ -44,8 +44,8 @@ export function parseSongsFromText(text) {
     .map((line) => {
       const parts = line.split(/\s*[—-]\s*|\s+-\s+/);
       return {
-        artist: parts[0] || "(artista)",
-        title: parts[1] || "(cancion)",
+        artist: parts[0] || "(sense artista)",
+        title: parts[1] || "(sense títol)",
       };
     });
 }
@@ -67,7 +67,7 @@ export function generateCardSongs({ songs, rows = 3, cols = 5, seed = "seed", pr
   const need = rows * cols;
   const source = preventDupes ? dedupeSongs(songs) : songs.slice();
   if (source.length < need) {
-    throw new Error(`Se necesitan al menos ${need} canciones para generar un carton`);
+    throw new Error(`Calen almenys ${need} cançons per generar un cartó`);
   }
   const randomFn = rand(hash32(String(seed)));
   return seededShuffle(source, randomFn).slice(0, need);

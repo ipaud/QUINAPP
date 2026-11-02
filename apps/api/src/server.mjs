@@ -137,6 +137,37 @@ function sendHtml(res, html, nonce) {
   res.end(html);
 }
 
+// Player-facing dead end (phone): a readable page instead of raw JSON.
+function sendPlayerError(res, status, title, message) {
+  res.writeHead(status, {
+    'Content-Type': 'text/html; charset=utf-8',
+    'Content-Security-Policy': cspHeader(randomBytes(16).toString('base64')),
+  });
+  res.end(`<!doctype html>
+<html lang="ca">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>${htmlEscape(title)} · QUINAPP</title>
+  <link rel="icon" href="/brand/quinapp-symbol.svg" type="image/svg+xml" />
+  <style>
+    body{margin:0;min-height:100vh;display:grid;place-items:center;padding:24px;background:#faf9f6;color:#0d0d0d;font-family:"Space Grotesk",Inter,Arial,sans-serif}
+    main{max-width:420px;background:#fff;border:3px solid #0d0d0d;box-shadow:5px 5px 0 #0d0d0d;padding:24px}
+    img{display:block;margin-bottom:16px}
+    h1{margin:0 0 8px;font-size:22px;text-transform:uppercase;letter-spacing:.04em}
+    p{margin:0;color:#6b6b6b;line-height:1.5}
+  </style>
+</head>
+<body>
+  <main>
+    <img src="/brand/quinapp-symbol.svg" width="48" height="48" alt="" />
+    <h1>${htmlEscape(title)}</h1>
+    <p>${htmlEscape(message)}</p>
+  </main>
+</body>
+</html>`);
+}
+
 function sanitizeFilename(name) {
   return String(name || 'file').replace(/[^A-Za-z0-9._-]/g, '_');
 }
@@ -170,7 +201,7 @@ function sendBinary(res, status, type, bytes, fileName) {
 }
 
 function notFound(res) {
-  json(res, 404, { error: 'No encontrado' });
+  json(res, 404, { error: 'Aquesta pàgina no existeix' });
 }
 
 function parseBody(req) {
@@ -179,7 +210,7 @@ function parseBody(req) {
     req.on('data', (chunk) => {
       raw += chunk;
       if (raw.length > BODY_SIZE_LIMIT) {
-        reject(new Error('Body demasiado grande'));
+        reject(new Error('Fitxer massa gran'));
       }
     });
     req.on('end', () => {
@@ -190,7 +221,7 @@ function parseBody(req) {
       try {
         resolve(JSON.parse(raw));
       } catch {
-        reject(new Error('JSON invalido'));
+        reject(new Error('Petició no vàlida'));
       }
     });
     req.on('error', reject);
@@ -276,7 +307,7 @@ function parseCSV(text) {
     const r = rows[i];
     const artist = (hA > -1 ? r[hA] : r[0]) || '';
     const title = (hT > -1 ? r[hT] : r[1]) || '';
-    if (artist || title) songs.push({ artist: artist || '(artista)', title: title || '(cancion)' });
+    if (artist || title) songs.push({ artist: artist || '(sense artista)', title: title || '(sense títol)' });
   }
   return songs;
 }
@@ -310,16 +341,16 @@ async function parseXlsxBase64(base64) {
       if (looksLikeHeader) return;
     }
     if (artist || title) {
-      songs.push({ artist: artist || '(artista)', title: title || '(cancion)' });
+      songs.push({ artist: artist || '(sense artista)', title: title || '(sense títol)' });
     }
   });
   return songs;
 }
 
 async function fetchYouTubePlaylistSongs(url, apiKey) {
-  if (!apiKey) throw new Error('Falta API key de YouTube');
+  if (!apiKey) throw new Error('Cal una clau de YouTube per importar aquesta llista');
   const playlistId = parseYouTubePlaylistId(url);
-  if (!playlistId) throw new Error('No se detecto playlist de YouTube');
+  if (!playlistId) throw new Error('Aquest enllaç no és d’una llista de YouTube');
 
   const songs = [];
   let pageToken = '';
@@ -332,15 +363,15 @@ async function fetchYouTubePlaylistSongs(url, apiKey) {
     if (pageToken) endpoint.searchParams.set('pageToken', pageToken);
 
     const res = await fetch(endpoint);
-    if (!res.ok) throw new Error(`YouTube API error (${res.status})`);
+    if (!res.ok) throw new Error(`YouTube no ha deixat llegir la llista (error ${res.status})`);
     const data = await res.json();
 
     (data.items || []).forEach((item) => {
       const s = item?.snippet || {};
       const full = String(s.title || '').trim();
       const parts = full.split(/\s[-–—]\s/);
-      const artist = parts.length >= 2 ? parts[0] : String(s.videoOwnerChannelTitle || '(artista)');
-      const title = parts.length >= 2 ? parts.slice(1).join(' - ') : String(full || '(cancion)');
+      const artist = parts.length >= 2 ? parts[0] : String(s.videoOwnerChannelTitle || '(sense artista)');
+      const title = parts.length >= 2 ? parts.slice(1).join(' - ') : String(full || '(sense títol)');
       const vid = s.resourceId?.videoId || null;
       const songUrl = vid ? `https://www.youtube.com/watch?v=${vid}` : null;
       songs.push({ artist, title, provider: 'youtube', url: songUrl });
@@ -352,9 +383,9 @@ async function fetchYouTubePlaylistSongs(url, apiKey) {
 }
 
 async function fetchSpotifyPlaylistSongs(url, token) {
-  if (!token) throw new Error('Falta token OAuth de Spotify');
+  if (!token) throw new Error('Connecta Spotify primer');
   const playlistId = parseSpotifyPlaylistId(url);
-  if (!playlistId) throw new Error('No se detecto playlist de Spotify');
+  if (!playlistId) throw new Error('Aquest enllaç no és d’una llista de Spotify');
 
   const songs = [];
   let nextUrl = `https://api.spotify.com/v1/playlists/${playlistId}/tracks?limit=100`;
@@ -362,13 +393,13 @@ async function fetchSpotifyPlaylistSongs(url, token) {
     const res = await fetch(nextUrl, {
       headers: { Authorization: `Bearer ${token}` },
     });
-    if (!res.ok) throw new Error(`Spotify API error (${res.status})`);
+    if (!res.ok) throw new Error(`Spotify no ha deixat llegir la llista (error ${res.status}). Comprova que sigui pública.`);
     const data = await res.json();
     (data.items || []).forEach((it) => {
       const tr = it?.track;
       if (!tr) return;
-      const artist = tr?.artists?.[0]?.name || '(artista)';
-      const title = tr?.name || '(cancion)';
+      const artist = tr?.artists?.[0]?.name || '(sense artista)';
+      const title = tr?.name || '(sense títol)';
       const songUrl = tr?.external_urls?.spotify || null;
       const uri = tr?.uri || null;
       songs.push({ artist, title, provider: 'spotify', url: songUrl, uri });
@@ -600,14 +631,14 @@ function renderValidateBatchHtml(nonce) {
         <div class="controls">
           <button id="startBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg> Iniciar càmera</button>
           <button id="stopBtn" disabled>Aturar</button>
-          <button id="photoBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 12h10"/></svg> Foto QR</button>
+          <button id="photoBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 12h10"/></svg> Fer foto del QR</button>
         </div>
         <div class="status" id="status" role="status" aria-live="polite">Estat: a punt</div>
-        <label class="label" for="manualInput">Alternativa manual (URL del QR)</label>
-        <input id="manualInput" placeholder="Enganxa URL /validate-card?d=...&s=..." />
+        <label class="label" for="manualInput">Alternativa: enganxa l’enllaç del QR</label>
+        <input id="manualInput" placeholder="Enganxa l’enllaç del QR" type="url" autocapitalize="off" spellcheck="false" />
         <input id="photoInput" type="file" accept="image/*" capture="environment" hidden />
         <div class="controls">
-          <button id="manualBtn">Validar manual</button>
+          <button id="manualBtn">Comprovar enllaç</button>
         </div>
       </div>
       <div class="panel">
@@ -619,8 +650,8 @@ function renderValidateBatchHtml(nonce) {
           </select>
           <select id="filterWindow" aria-label="Filtrar per temps">
             <option value="all">Tot el temps</option>
-            <option value="5">Ultims 5 min</option>
-            <option value="15">Ultims 15 min</option>
+            <option value="5">Últims 5 min</option>
+            <option value="15">Últims 15 min</option>
           </select>
         </div>
         <div id="summary" class="summary">0 resultats</div>
@@ -701,7 +732,7 @@ function renderValidateBatchHtml(nonce) {
       if(!scanCtx) throw new Error('Canvas no disponible');
       const w = img.naturalWidth || img.width;
       const h = img.naturalHeight || img.height;
-      if(!w || !h) throw new Error('Imatge no valida');
+      if(!w || !h) throw new Error('Imatge no vàlida');
       scanCanvas.width = w;
       scanCanvas.height = h;
       scanCtx.drawImage(img, 0, 0, w, h);
@@ -788,7 +819,7 @@ function renderValidateBatchHtml(nonce) {
     }
     function exportCsv(){
       if(!rows.length){
-        setStatus('sense resultats per exportar');
+        setStatus('encara no hi ha resultats per exportar');
         return;
       }
       const header = ['timestamp','pin','cardNumber','result','matched','total','missing'];
@@ -872,7 +903,7 @@ function renderValidateBatchHtml(nonce) {
       const key = d + '::' + s;
       if (!shouldProcess(key)) return;
       const res = await fetch('/api/validate-card?d='+encodeURIComponent(d)+'&s='+encodeURIComponent(s));
-      const data = await res.json().catch(()=>({error:'Resposta no valida'}));
+      const data = await res.json().catch(()=>({error:'Resposta no vàlida'}));
       if(!res.ok) throw new Error(data.error || 'No es pot validar');
       renderResult({ ...data, validationUrl: location.origin + '/validate-card?d=' + encodeURIComponent(d) + '&s=' + encodeURIComponent(s) });
     }
@@ -921,20 +952,20 @@ function renderValidateBatchHtml(nonce) {
       }
       const secureLike = window.isSecureContext || isLocalhostHost();
       if(!secureLike){
-        setStatus('Camera bloquejada en HTTP. Obre la URL a Safari/Chrome normal o usa HTTPS.');
+        setStatus('La càmera necessita una connexió segura (https). Obre l’enllaç amb https o fes servir «Fer foto del QR».');
       }
       detector = null;
       if('BarcodeDetector' in window){
         try{
           detector = new BarcodeDetector({ formats: ['qr_code'] });
-          setStatus('escanejant... (detector natiu)');
+          setStatus('escanejant…');
         }catch{
           detector = null;
         }
       }
       if(!detector){
         await ensureJsQr();
-        setStatus('escanejant... (mode compatibilitat iPhone)');
+        setStatus('escanejant…');
       }
       stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio:false });
       video.srcObject = stream;
@@ -949,7 +980,7 @@ function renderValidateBatchHtml(nonce) {
       startBtn.disabled = false; stopBtn.disabled = true;
       setStatus('aturat');
     }
-    startBtn.addEventListener('click', async()=>{ try{ await startCam(); }catch(e){ setStatus(e.message || 'No es pot obrir la camera'); }});
+    startBtn.addEventListener('click', async()=>{ try{ await startCam(); }catch(e){ setStatus(e.message || 'No es pot obrir la càmera'); }});
     stopBtn.addEventListener('click', stopCam);
     clearBtn.addEventListener('click', ()=>{
       if(rows.length && !confirm('Esborrar ' + rows.length + ' resultats? Exporta el CSV abans si els necessites.')) return;
@@ -962,7 +993,7 @@ function renderValidateBatchHtml(nonce) {
       const article = btn.closest('.item');
       const link = article?.dataset?.validationUrl || '';
       if(!link){
-        setStatus('enllac no disponible');
+        setStatus('enllaç no disponible');
         return;
       }
       try{
@@ -976,7 +1007,7 @@ function renderValidateBatchHtml(nonce) {
           document.execCommand('copy');
           temp.remove();
         }
-        setStatus('enllac copiat');
+        setStatus('enllaç copiat');
       }catch{
         setStatus('no es pot copiar');
       }
@@ -1284,17 +1315,17 @@ const requestHandler = async (req, res) => {
         // QR TTL: reject payloads older than QR_TTL_DAYS (default 30 days)
         const ttlDays = Math.max(1, Number(process.env.QR_TTL_DAYS || 30));
         if (payload.issuedAt && Date.now() - payload.issuedAt > ttlDays * 86_400_000) {
-          json(res, 400, { error: `QR caducat (TTL ${ttlDays} dies)` });
+          json(res, 400, { error: `Aquest QR ha caducat (val ${ttlDays} dies). Genera els cartons de nou.` });
           return;
         }
         const session = getSession(payload.pin);
         if (!session) {
-          json(res, 404, { error: 'Sesion no encontrada' });
+          json(res, 404, { error: 'No hi ha cap partida amb aquest PIN' });
           return;
         }
         const card = getCard(payload.pin, payload.cardId);
         if (!card) {
-          json(res, 404, { error: 'Carton no encontrado' });
+          json(res, 404, { error: 'Aquest cartó no és d’aquesta partida' });
           return;
         }
         const result = computeCardValidation(payload.pin, card);
@@ -1318,7 +1349,7 @@ const requestHandler = async (req, res) => {
         const pin = decodeURIComponent(sessionMatch[1]);
         const session = getSession(pin);
         if (!session) {
-          json(res, 404, { error: 'Sesion no encontrada' });
+          json(res, 404, { error: 'No hi ha cap partida amb aquest PIN' });
           return;
         }
         json(res, 200, session);
@@ -1330,7 +1361,7 @@ const requestHandler = async (req, res) => {
         const pin = decodeURIComponent(sessionEventsMatch[1]);
         const snapshot = getRealtimeSnapshot(pin);
         if (!snapshot) {
-          json(res, 404, { error: 'Sesion no encontrada' });
+          json(res, 404, { error: 'No hi ha cap partida amb aquest PIN' });
           return;
         }
 
@@ -1356,7 +1387,7 @@ const requestHandler = async (req, res) => {
         const pin = decodeURIComponent(drawnMatch[1]);
         const session = getSession(pin);
         if (!session) {
-          json(res, 404, { error: 'Sesion no encontrada' });
+          json(res, 404, { error: 'No hi ha cap partida amb aquest PIN' });
           return;
         }
         json(res, 200, { drawn: listDrawnSongs(pin) });
@@ -1386,7 +1417,7 @@ const requestHandler = async (req, res) => {
         const cardId = decodeURIComponent(cardMatch[2]);
         const card = getCard(pin, cardId);
         if (!card) {
-          json(res, 404, { error: 'Carton no encontrado' });
+          json(res, 404, { error: 'Aquest cartó no és d’aquesta partida' });
           return;
         }
         json(res, 200, { card });
@@ -1399,12 +1430,12 @@ const requestHandler = async (req, res) => {
         const cardId = decodeURIComponent(cardPdfMatch[2]);
         const session = getSession(pin);
         if (!session) {
-          json(res, 404, { error: 'Sesion no encontrada' });
+          json(res, 404, { error: 'No hi ha cap partida amb aquest PIN' });
           return;
         }
         const card = getCard(pin, cardId);
         if (!card) {
-          json(res, 404, { error: 'Carton no encontrado' });
+          json(res, 404, { error: 'Aquest cartó no és d’aquesta partida' });
           return;
         }
 
@@ -1423,16 +1454,16 @@ const requestHandler = async (req, res) => {
         const pin = decodeURIComponent(sessionPdfMatch[1]);
         const session = getSession(pin);
         if (!session) {
-          json(res, 404, { error: 'Sesion no encontrada' });
+          json(res, 404, { error: 'No hi ha cap partida amb aquest PIN' });
           return;
         }
         const body = await parseBody(req);
         const allCards = listCards(pin);
-        if (!allCards.length) throw new Error('No hay cartones en la sesion');
+        if (!allCards.length) throw new Error('Encara no hi ha cartons. Genera’ls primer.');
 
         const wantedIds = Array.isArray(body.cardIds) ? new Set(body.cardIds) : null;
         const cards = wantedIds ? allCards.filter((c) => wantedIds.has(c.id)) : allCards;
-        if (!cards.length) throw new Error('No hay cartones para exportar');
+        if (!cards.length) throw new Error('No hi ha cartons per exportar');
 
         const format = body.format === 'a5' ? 'a5' : 'a4-2up';
         const showMeta = body.showMeta !== false;
@@ -1512,7 +1543,8 @@ const requestHandler = async (req, res) => {
         // Throttle admin-PIN attempts per IP+session to slow brute force.
         rateLimit(clientIp(req), `admin::${pin}`, 10, RATE_WINDOW_MS);
         const body = await parseBody(req);
-        const session = resetSessionRound(pin, String(body.adminPin || ''), 'admin');
+        authorizeOperator(pin, operatorAuth(req, body));
+        const session = resetSessionRound(pin, 'admin');
         broadcast(sseClients, pin, 'session.updated', { session });
         json(res, 200, session);
         return;
@@ -1523,7 +1555,8 @@ const requestHandler = async (req, res) => {
         const pin = decodeURIComponent(deleteSessionMatch[1]);
         rateLimit(clientIp(req), `admin::${pin}`, 10, RATE_WINDOW_MS);
         const body = await parseBody(req);
-        const result = deleteSession(pin, String(body.adminPin || ''), 'admin');
+        authorizeOperator(pin, operatorAuth(req, body));
+        const result = deleteSession(pin, 'admin');
         json(res, 200, result);
         return;
       }
@@ -1579,7 +1612,7 @@ const requestHandler = async (req, res) => {
 
       if (req.method === 'POST' && pathname === '/api/tools/parse-xlsx') {
         const body = await parseBody(req);
-        if (!body.base64) throw new Error('Falta base64');
+        if (!body.base64) throw new Error('Falta el fitxer');
         const songs = await parseXlsxBase64(body.base64);
         json(res, 200, { songs });
         return;
@@ -1588,7 +1621,7 @@ const requestHandler = async (req, res) => {
       if (req.method === 'POST' && pathname === '/api/tools/import-playlist') {
         const body = await parseBody(req);
         const playlistUrl = String(body.url || '').trim();
-        if (!playlistUrl) throw new Error('Falta URL de playlist');
+        if (!playlistUrl) throw new Error('Enganxa l’enllaç d’una llista');
         const provider = body.provider && body.provider !== 'auto'
           ? String(body.provider)
           : detectPlaylistProvider(playlistUrl);
@@ -1599,7 +1632,7 @@ const requestHandler = async (req, res) => {
         } else if (provider === 'spotify') {
           songs = await fetchSpotifyPlaylistSongs(playlistUrl, String(body.token || '').trim());
         } else {
-          throw new Error('Proveedor no soportado o no detectado');
+          throw new Error('Només es poden importar llistes de Spotify o YouTube');
         }
 
         json(res, 200, { provider, count: songs.length, songs });
@@ -1696,7 +1729,7 @@ const requestHandler = async (req, res) => {
       if (req.method === 'POST' && pathname === '/api/system/probe') {
         const body = await parseBody(req);
         const target = String(body.url || '').trim();
-        if (!target) throw new Error('Falta URL');
+        if (!target) throw new Error('Falta l’adreça');
         let endpoint;
         try {
           const u = new URL(target);
@@ -1727,7 +1760,7 @@ const requestHandler = async (req, res) => {
       notFound(res);
       return;
     } catch (error) {
-      json(res, error.status || 400, { error: error.message || 'Peticion invalida' });
+      json(res, error.status || 400, { error: error.message || 'No s’ha pogut fer. Torna-ho a provar.' });
       return;
     }
   }
@@ -1748,17 +1781,17 @@ const requestHandler = async (req, res) => {
     const pin = url.searchParams.get('pin') || '';
     const cardId = url.searchParams.get('card') || '';
     if (!pin || !cardId) {
-      json(res, 400, { error: 'Faltan parametros pin y card' });
+      sendPlayerError(res, 400, 'Enllaç incomplet', 'Torna a escanejar el QR del cartó.');
       return;
     }
     const session = getSession(pin);
     if (!session) {
-      json(res, 404, { error: 'Sesion no encontrada' });
+      sendPlayerError(res, 404, 'Partida acabada', 'Aquesta partida ja no existeix. Demana un cartó nou a l’organitzador.');
       return;
     }
     const card = getCard(pin, cardId);
     if (!card) {
-      json(res, 404, { error: 'Carton no encontrado' });
+      sendPlayerError(res, 404, 'Cartó no actiu', 'Aquest cartó ja no és de la partida. Demana’n un de nou a l’organitzador.');
       return;
     }
     const nonce = randomBytes(16).toString('base64');

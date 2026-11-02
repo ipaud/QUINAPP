@@ -893,6 +893,9 @@ body.event-mode #eventShortcuts kbd {
 /* Base (assistent) amaga les pestanyes avançades; avançat amaga el wizard */
 body:not(.advanced) .tabs { display: none; }
 body:not(.advanced) #main { display: none; }
+/* Host-facing wizard: no connection jargon unless the server is actually down. */
+body:not(.advanced) #liveIndicator,
+body:not(.advanced) #serverIndicator.server-on { display: none; }
 body.advanced #wizard { display: none; }
 
 /* ── Wizard ── */

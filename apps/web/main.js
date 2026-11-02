@@ -1,4 +1,5 @@
-const TOAST_DURATION_MS = 3200;
+// Errors stay long enough to read and act on; info/success are brief.
+const TOAST_DURATION_MS = { error: 9000, default: 4500 };
 
 // ── Lucide icons (inline SVG, sense CDN) ──────────────────────────────────────
 const ICONS = {
@@ -230,9 +231,11 @@ window.addEventListener('hashchange', () => {
 function showToast(text, type = 'info') {
   const t = document.createElement('div');
   t.className = `toast toast-${type}`;
+  // Errors interrupt screen readers; the container announces the rest politely.
+  if (type === 'error') t.setAttribute('role', 'alert');
   t.textContent = text;
   els.toastContainer.appendChild(t);
-  setTimeout(() => t.remove(), TOAST_DURATION_MS);
+  setTimeout(() => t.remove(), TOAST_DURATION_MS[type] || TOAST_DURATION_MS.default);
 }
 
 function showQrModal(title, qrDataUrl, url) {
@@ -312,13 +315,13 @@ function showQrModal(title, qrDataUrl, url) {
 // ── Live indicator ────────────────────────────────────────────────────────────
 
 function setLiveIndicator(connected) {
-  els.liveIndicator.innerHTML = `${svgIcon('dot')} ${connected ? 'LIVE' : 'OFF'}`;
+  els.liveIndicator.innerHTML = `${svgIcon('dot')} ${connected ? 'EN DIRECTE' : 'DESCONNECTAT'}`;
   els.liveIndicator.className = `live-badge ${connected ? 'live-on' : 'live-off'}`;
 }
 
 function setServerIndicator(ok) {
   if (!els.serverIndicator) return;
-  els.serverIndicator.textContent = ok ? 'SERVER OK' : 'SERVER KO';
+  els.serverIndicator.textContent = ok ? 'SERVIDOR OK' : 'SENSE SERVIDOR';
   els.serverIndicator.className = `server-badge ${ok ? 'server-on' : 'server-off'}`;
 }
 
@@ -355,14 +358,17 @@ function apiHeaders(path, body) {
   return headers;
 }
 
+const API_DOWN = 'No hi ha connexió amb el servidor de QUINAPP. Comprova que l’app segueixi oberta i torna-ho a provar.';
+const API_FAILED = 'No s’ha pogut fer. Torna-ho a provar.';
+
 async function api(path, options = {}) {
   const res = await fetch(path, {
     method: options.method || 'GET',
     headers: apiHeaders(path, options.body),
     body: options.body ? JSON.stringify(options.body) : null,
-  });
+  }).catch(() => { throw new Error(API_DOWN); });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || 'Error API');
+  if (!res.ok) throw new Error(data.error || API_FAILED);
   if (data.operatorToken && data.pin) saveOperatorToken(data.pin, data.operatorToken);
   return data;
 }
@@ -375,7 +381,7 @@ async function apiBinary(path, options = {}) {
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error(err.error || 'Error API');
+    throw new Error(err.error || API_FAILED);
   }
   return res.blob();
 }
@@ -383,14 +389,14 @@ async function apiBinary(path, options = {}) {
 async function fetchSpotifyConfig() {
   const res = await fetch('/api/tools/spotify-config');
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || 'No es pot carregar la configuracio de Spotify');
+  if (!res.ok) throw new Error(data.error || 'No es pot carregar la configuració de Spotify');
   return data;
 }
 
 async function fetchNetworkConfig() {
   const res = await fetch('/api/system/network');
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || 'No es pot carregar la configuracio de xarxa');
+  if (!res.ok) throw new Error(data.error || 'No es pot carregar la configuració de xarxa');
   return data;
 }
 
@@ -478,10 +484,10 @@ async function refreshPhoneConnectionUrl() {
       const isLocalHost = host === '127.0.0.1' || host === 'localhost';
       const hasLan = Boolean(best) && !best.includes('127.0.0.1') && !best.includes('localhost');
       els.networkHint.textContent = hasLan
-        ? 'Red OK: usa el QR o la URL en iPhone (misma Wi-Fi).'
+        ? 'Xarxa a punt: escaneja el QR des del mòbil (mateixa Wi-Fi).'
         : isLocalHost
-          ? 'Avis: estas en localhost. Per iPhone necessites una URL LAN.'
-          : 'Revisa la Wi-Fi compartida entre Mac i iPhone.';
+          ? 'Estàs obrint l’app des de localhost: el mòbil no la trobarà. Obre-la amb l’adreça de xarxa.'
+          : 'Comprova que l’ordinador i el mòbil siguin a la mateixa Wi-Fi.';
     }
   } catch {
     if (els.phoneUrl) els.phoneUrl.value = '';
@@ -559,7 +565,7 @@ function renderImportReport(report) {
     return;
   }
   const txt = [
-    `Importacio: ${report.newCount || 0} noves`,
+    `Importació: ${report.newCount || 0} noves`,
     `${report.duplicateCount || 0} duplicades`,
     `${report.conflictiveCount || 0} conflictives`,
     `(uniques: ${report.uniqueCount || 0}/${report.total || 0})`,
@@ -820,7 +826,7 @@ const SPOTIFY_POPUP_NAME = 'qm-spotify-login';
 
 async function buildSpotifyAuthUrl() {
   const clientId = currentSpotifyClientId();
-  if (!clientId) throw new Error('Falta el Client ID de Spotify: configura SPOTIFY_CLIENT_ID al servidor o omple el camp');
+  if (!clientId) throw new Error('Spotify no està configurat en aquest equip. Omple el Client ID o continua manualment.');
   lsSet(SPOT_KEYS.clientId, clientId);
 
   const verifier = randomString(96);
@@ -991,7 +997,7 @@ function renderCard(card) {
     els.grid.appendChild(cell);
   });
 
-  els.cardMeta.textContent = `#${card.number}  ·  ${state.activeCardIndex + 1}/${state.cards.length}  ·  ${state.marked.size}/${card.songs.length} marcadas`;
+  els.cardMeta.textContent = `#${card.number}  ·  ${state.activeCardIndex + 1}/${state.cards.length}  ·  ${state.marked.size}/${card.songs.length} marcades`;
 }
 
 function syncMarksFromDrawn() {
@@ -1082,13 +1088,13 @@ function updateSpotifyPlayer(song, forceAutoplay = false) {
 
   if (!song) {
     embed.src = 'about:blank';
-    status.textContent = 'Importa una llista de Spotify per reproduir cancons reals.';
+    status.textContent = 'Importa una llista de Spotify per reproduir les cançons.';
     return;
   }
 
   const trackId = getSpotifyTrackId(song);
   if (!trackId) {
-    status.textContent = 'La canco actual no te enllac de Spotify.';
+    status.textContent = 'La cançó actual no té enllaç de Spotify.';
     return;
   }
 
@@ -1111,8 +1117,8 @@ function updateQueueUi(current = null, next = null) {
   }
   if (els.queueNext) {
     els.queueNext.textContent = next
-      ? `Seguent: ${next.artist} — ${next.title}`
-      : 'Seguent: —';
+      ? `Següent: ${next.artist} — ${next.title}`
+      : 'Següent: —';
   }
   if (els.queueBlockedInfo) {
     els.queueBlockedInfo.textContent = `Bloquejades: ${state.blockedSongs.size}`;
@@ -1197,7 +1203,7 @@ function updateNow(song) {
   els.gameNowArtist.textContent = song.artist;
   els.gameNowTitle.textContent = blocked ? `${song.title} (bloquejada)` : song.title;
   if (blocked) {
-    setSpotifySdkStatus('canco bloquejada');
+    setSpotifySdkStatus('cançó sense reproducció');
     updateSpotifyPlayer(song, false);
   } else {
     spotifyPlaySong(song, Boolean(els.spotifyAutoplay?.checked));
@@ -1231,7 +1237,7 @@ function addToHistory(song, index) {
 function rebuildHistory(songs) {
   els.drawnHistory.innerHTML = '';
   if (!songs.length) {
-    els.drawnHistory.innerHTML = '<li class="drawn-empty">Cap canco treta encara.</li>';
+    els.drawnHistory.innerHTML = '<li class="drawn-empty">Encara no ha sonat cap cançó.</li>';
     return;
   }
   songs.forEach((song, i) => addToHistory(song, i + 1));
@@ -1243,9 +1249,9 @@ function applyDrawSong(song, drawnCount) {
   if (!song) {
     state.playlistDone = true;
     els.nowArtist.textContent = 'Fi de partida';
-    els.nowTitle.textContent = `Totes les cançons sacades (${drawnCount})`;
+    els.nowTitle.textContent = `Han sonat totes les cançons (${drawnCount})`;
     els.gameNowArtist.textContent = 'Fi de partida';
-    els.gameNowTitle.textContent = `Totes les cançons sacades (${drawnCount})`;
+    els.gameNowTitle.textContent = `Han sonat totes les cançons (${drawnCount})`;
     if (els.eventBigCounter) els.eventBigCounter.textContent = `${drawnCount} / ${els.totalSongs.textContent || '—'}`;
     if (els.drawNext) { els.drawNext.disabled = true; els.drawNext.innerHTML = svgIcon('check') + ' Playlist finalitzada'; }
     updateQueueUi(null, null);
@@ -1313,7 +1319,7 @@ function connectLiveSSE(pin) {
     if (state.session && state.session.pin === data.session.pin) {
       state.session = data.session;
       els.totalSongs.textContent = data.session.songs;
-      showToast('Sessio sincronitzada', 'info');
+      showToast('Sessió sincronitzada', 'info');
     }
   });
 
@@ -1372,7 +1378,7 @@ async function hydrateSession(pin) {
   refreshNextInQueue();
   connectLiveSSE(pin);
   renderCardsList();
-  showToast(`Sessio "${pin}" carregada`, 'success');
+  showToast(`Sessió ${pin} carregada`, 'success');
 }
 
 // ── Event listeners ───────────────────────────────────────────────────────────
@@ -1410,26 +1416,26 @@ els.spotifyDisconnect?.addEventListener('click', () => {
 
 els.spotifyPlayCurrent?.addEventListener('click', () => {
   if (!state.currentSong) {
-    showToast('Encara no hi ha canco actual', 'error');
+    showToast('Encara no sona cap cançó', 'error');
     return;
   }
   const trackId = getSpotifyTrackId(state.currentSong);
   if (!trackId) {
-    showToast('La canco actual no esta vinculada a Spotify', 'error');
+    showToast('La cançó actual no està enllaçada a Spotify', 'error');
     return;
   }
   updateSpotifyPlayer(state.currentSong, true);
-  showToast('Reproduccio carregada al reproductor de Spotify', 'info');
+  showToast('Cançó carregada al reproductor de Spotify', 'info');
 });
 
 els.spotifyOpenCurrent?.addEventListener('click', () => {
   if (!state.currentSong) {
-    showToast('Encara no hi ha canco actual', 'error');
+    showToast('Encara no sona cap cançó', 'error');
     return;
   }
   const url = buildSpotifyTrackUrl(state.currentSong);
   if (!url) {
-    showToast('La canco actual no es a Spotify', 'error');
+    showToast('La cançó actual no és a Spotify', 'error');
     return;
   }
   window.open(url, '_blank');
@@ -1439,7 +1445,7 @@ els.spotifyToggle?.addEventListener('click', async () => {
   try {
     await spotifyTogglePlayback();
   } catch (error) {
-    showToast(error.message || 'No es pot canviar la reproduccio', 'error');
+    showToast(error.message || 'No es pot canviar la reproducció', 'error');
   }
 });
 
@@ -1479,7 +1485,7 @@ els.spotifyVolume?.addEventListener('input', async () => {
 
 els.drawRepeat?.addEventListener('click', async () => {
   if (!state.currentSong) {
-    showToast('No hi ha canco actual per repetir', 'error');
+    showToast('Encara no sona cap cançó per repetir', 'error');
     return;
   }
   await spotifyPlaySong(state.currentSong, true);
@@ -1487,16 +1493,16 @@ els.drawRepeat?.addEventListener('click', async () => {
 
 els.drawBlock?.addEventListener('click', () => {
   if (!state.currentSong) {
-    showToast('No hi ha canco actual per bloquejar', 'error');
+    showToast('Encara no sona cap cançó', 'error');
     return;
   }
   const key = songKey(state.currentSong);
   if (state.blockedSongs.has(key)) {
     state.blockedSongs.delete(key);
-    showToast('Canco desbloquejada', 'info');
+    showToast('Es tornarà a reproduir automàticament', 'info');
   } else {
     state.blockedSongs.add(key);
-    showToast('Canco bloquejada (sense autoplay)', 'info');
+    showToast('No es reproduirà automàticament', 'info');
   }
   updateNow(state.currentSong);
   updateQueueUi(state.currentSong, null);
@@ -1541,12 +1547,12 @@ els.goToMobileTab?.addEventListener('click', () => {
 
 els.refreshPhoneUrl?.addEventListener('click', async () => {
   await refreshPhoneConnectionUrl();
-  if (els.phoneUrl?.value) showToast('URL iPhone actualitzada', 'info');
+  if (els.phoneUrl?.value) showToast('Adreça per al mòbil actualitzada', 'info');
 });
 
 els.copyPhoneUrl?.addEventListener('click', async () => {
   const value = (els.phoneUrl?.value || '').trim();
-  if (!value) { showToast('URL iPhone buida', 'error'); return; }
+  if (!value) { showToast('Falta l’adreça per al mòbil', 'error'); return; }
   try {
     if (navigator.clipboard?.writeText) {
       await navigator.clipboard.writeText(value);
@@ -1615,12 +1621,12 @@ els.testMobileConnection?.addEventListener('click', async () => {
       body: { url: value },
     });
     if (probe.ok) {
-      showToast('Prova de connexio OK', 'success');
+      showToast('El mòbil hi pot arribar', 'success');
     } else {
-      showToast(`Prova de connexio KO (status ${probe.status})`, 'error');
+      showToast('El mòbil no arriba a l’app. Comprova que siguin a la mateixa Wi-Fi.', 'error');
     }
   } catch (error) {
-    showToast(error.message || 'Error en la prova de connexio', 'error');
+    showToast(error.message || 'No s’ha pogut provar la connexió', 'error');
   }
 });
 
@@ -1629,7 +1635,7 @@ els.playlistProvider?.addEventListener('change', () => {
     els.playlistProvider.value === 'youtube'
       ? 'YouTube Data API key'
       : els.playlistProvider.value === 'spotify'
-        ? 'Spotify OAuth token (opcional si ya conectaste PKCE)'
+        ? 'Token de Spotify (opcional si ja l’has connectat)'
         : 'API Key / Token';
 });
 
@@ -1685,7 +1691,7 @@ els.importPlaylist?.addEventListener('click', async () => {
       rebuildHistory([]);
       updateNow(null);
       renderCard(null);
-      showToast('Sessio actualitzada amb la llista', 'info');
+      showToast('Sessió actualitzada amb la llista', 'info');
       if (updated.importReport) renderImportReport(updated.importReport);
     }
   } catch (error) {
@@ -1722,7 +1728,7 @@ els.createSession.addEventListener('click', async () => {
     updateNow(null);
     renderCard(null);
     connectLiveSSE(session.pin);
-    showToast(`Sessio "${session.pin}" creada`, 'success');
+    showToast(`Sessió ${session.pin} creada`, 'success');
     switchTab('locutor');
   } catch (error) {
     showToast(error.message, 'error');
@@ -1754,7 +1760,6 @@ els.resetRound?.addEventListener('click', async () => {
   try {
     if (!state.session) throw new Error('Primer crea o carrega una sessió');
     const adminPin = (els.adminPin?.value || '').trim();
-    if (!adminPin) throw new Error('Falta el PIN admin');
     const ok = confirm(`Nova tanda a ${state.session.pin}? Esborra els cartons i sortejos d'aquesta sessió. No es pot desfer.`);
     if (!ok) return;
     const updated = await withBusy(els.resetRound, 'Reiniciant…',
@@ -1779,9 +1784,8 @@ els.resetRound?.addEventListener('click', async () => {
 
 els.deleteSessionBtn?.addEventListener('click', async () => {
   try {
-    if (!state.session) throw new Error('No hi ha sessio activa');
+    if (!state.session) throw new Error('No hi ha cap sessió activa');
     const adminPin = (els.adminPin?.value || '').trim();
-    if (!adminPin) throw new Error('Falta el PIN admin');
     const ok = confirm(`Esborrar la sessió ${state.session.pin}? Aquesta acció no es pot desfer.`);
     if (!ok) return;
     await api(`/api/sessions/${encodeURIComponent(state.session.pin)}`, {
@@ -1796,7 +1800,7 @@ els.deleteSessionBtn?.addEventListener('click', async () => {
     rebuildHistory([]);
     updateNow(null);
     renderCard(null);
-    showToast('Sessio esborrada', 'success');
+    showToast('Sessió esborrada', 'success');
   } catch (error) {
     showToast(error.message, 'error');
   }
@@ -1856,12 +1860,12 @@ els.locutorFullscreen?.addEventListener('click', async () => {
 });
 
 els.exportLogJson?.addEventListener('click', () => {
-  if (!state.session) { showToast('Cal una sessio activa', 'error'); return; }
+  if (!state.session) { showToast('Primer crea o carrega una sessió', 'error'); return; }
   window.open(`/api/sessions/${encodeURIComponent(state.session.pin)}/log-export?format=json`, '_blank');
 });
 
 els.exportLogCsv?.addEventListener('click', () => {
-  if (!state.session) { showToast('Cal una sessio activa', 'error'); return; }
+  if (!state.session) { showToast('Primer crea o carrega una sessió', 'error'); return; }
   window.open(`/api/sessions/${encodeURIComponent(state.session.pin)}/log-export?format=csv`, '_blank');
 });
 
@@ -1875,7 +1879,7 @@ function claimMessage(type, valid, cardNumber) {
 
 async function submitClaim(type) {
   try {
-    if (!state.session || !activeCard()) throw new Error('Cal sessio i carto');
+    if (!state.session || !activeCard()) throw new Error('Primer crea una sessió i genera cartons');
     const result = await api(`/api/sessions/${encodeURIComponent(state.session.pin)}/claims`, {
       method: 'POST',
       body: { cardId: activeCard().id, type },
@@ -1905,13 +1909,13 @@ els.nextCard.addEventListener('click', () => {
 
 els.downloadCurrentPdf?.addEventListener('click', () => {
   const card = activeCard();
-  if (!state.session || !card) { showToast('Cal sessio i carto actiu', 'error'); return; }
+  if (!state.session || !card) { showToast('Primer crea una sessió i genera cartons', 'error'); return; }
   window.open(`/api/sessions/${encodeURIComponent(state.session.pin)}/cards/${encodeURIComponent(card.id)}/pdf`, '_blank');
 });
 
 els.showCardQr?.addEventListener('click', async () => {
   const card = activeCard();
-  if (!state.session || !card) { showToast('Cal sessio i carto actiu', 'error'); return; }
+  if (!state.session || !card) { showToast('Primer crea una sessió i genera cartons', 'error'); return; }
   const cardPath = `/play-card?pin=${encodeURIComponent(state.session.pin)}&card=${encodeURIComponent(card.id)}`;
   try {
     const qr = await serverQr(cardPath);
@@ -1924,7 +1928,7 @@ els.showCardQr?.addEventListener('click', async () => {
 
 els.downloadPdf?.addEventListener('click', async () => {
   try {
-    if (!state.session) throw new Error('Cal una sessio activa');
+    if (!state.session) throw new Error('Primer crea o carrega una sessió');
     if (!state.cards.length) throw new Error('No hi ha cartons per exportar');
     const card = activeCard();
     const scope = els.pdfScope?.value || 'all';
@@ -1950,7 +1954,7 @@ els.downloadPdf?.addEventListener('click', async () => {
 els.previewPdf?.addEventListener('click', async () => {
   try {
     const card = activeCard();
-    if (!state.session || !card) throw new Error('Cal sessio i carto actiu');
+    if (!state.session || !card) throw new Error('Primer crea una sessió i genera cartons');
     const blob = await withBusy(els.previewPdf, 'Generant…', async () => {
       const res = await fetch(`/api/sessions/${encodeURIComponent(state.session.pin)}/cards/${encodeURIComponent(card.id)}/pdf`);
       if (!res.ok) throw new Error('No es pot generar la previsualitzacio PDF');
@@ -1959,7 +1963,7 @@ els.previewPdf?.addEventListener('click', async () => {
     const url = URL.createObjectURL(blob);
     if (els.pdfPreviewFrame) els.pdfPreviewFrame.src = url;
     if (els.pdfPreviewWrap) els.pdfPreviewWrap.classList.remove('hidden');
-    showToast('Previsualitzacio PDF generada', 'info');
+    showToast('Previsualització del PDF generada', 'info');
   } catch (error) {
     showToast(error.message, 'error');
   }
@@ -1989,7 +1993,7 @@ els.csvFile.addEventListener('change', async () => {
     state.marked = new Set();
     els.songs.value = parsed.songs.map((s) => `${s.artist} - ${s.title}`).join('\n');
     renderCard(null);
-    showToast(`Importades ${parsed.songs.length} cancons des de CSV`, 'success');
+    showToast(`${parsed.songs.length} cançons importades del CSV`, 'success');
     if (updated.importReport) renderImportReport(updated.importReport);
   } catch (error) {
     showToast(error.message, 'error');
@@ -2020,7 +2024,7 @@ els.xlsxFile.addEventListener('change', async () => {
     state.marked = new Set();
     els.songs.value = parsed.songs.map((s) => `${s.artist} - ${s.title}`).join('\n');
     renderCard(null);
-    showToast(`Importades ${parsed.songs.length} cancons des de XLSX`, 'success');
+    showToast(`${parsed.songs.length} cançons importades de l’Excel`, 'success');
     if (updated.importReport) renderImportReport(updated.importReport);
   } catch (error) {
     showToast(error.message, 'error');
@@ -2165,7 +2169,9 @@ document.addEventListener('keydown', (event) => {
   function setMode(advanced) {
     document.body.classList.toggle('advanced', advanced);
     lsSet(MODE_KEY, advanced ? 'advanced' : 'wizard');
-    if (W.modeToggle) W.modeToggle.textContent = advanced ? 'Assistent' : 'Mode avançat';
+    if (W.modeToggle) W.modeToggle.textContent = advanced ? 'Tornar a l’assistent' : 'Mode avançat';
+    // The skip link must target the visible view (#main is hidden in wizard mode).
+    document.querySelector('.skip-link')?.setAttribute('href', advanced ? '#main' : '#wizard');
   }
   W.modeToggle?.addEventListener('click', () => setMode(!document.body.classList.contains('advanced')));
   // La vista per defecte és SEMPRE l'assistent; només el deep-link ?mode=advanced l'obre.
@@ -2198,7 +2204,7 @@ document.addEventListener('keydown', (event) => {
         // Cap Client ID configurat: revela el camp un sol cop en lloc de fallar.
         if (W.clientIdWrap) { W.clientIdWrap.hidden = false; W.clientIdWrap.open = true; }
         W.clientId?.focus();
-        showToast('Configura el Client ID de Spotify (un sol cop) o arrenca amb SPOTIFY_CLIENT_ID', 'info');
+        showToast('Spotify no està configurat en aquest equip. Omple el Client ID o continua manualment.', 'info');
         return;
       }
       if ((W.clientId?.value || '').trim()) lsSet(SPOT_KEYS.clientId, cid);
