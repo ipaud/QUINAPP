@@ -537,7 +537,7 @@ function renderValidateBatchHtml(nonce) {
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700;800&display=swap" rel="stylesheet" />
   <style>
-    :root{--bg:#faf9f6;--panel:#fff;--ink:#0d0d0d;--muted:#6b6b6b;--brand:#ff4b4b;--accent:#ffe234;--green:#1db954;--border:3px solid #0d0d0d;--shadow:5px 5px 0 #0d0d0d;--shadow-sm:3px 3px 0 #0d0d0d}
+    :root{--bg:#faf9f6;--panel:#fff;--ink:#0d0d0d;--muted:#6b6b6b;--brand:#ff4b4b;--accent:#ffe234;--live:#00c896;--border:3px solid #0d0d0d;--shadow:5px 5px 0 #0d0d0d;--shadow-sm:3px 3px 0 #0d0d0d}
     *{box-sizing:border-box;margin:0;padding:0}
     body{font-family:"Space Grotesk",system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--ink);line-height:1.4}
     .appbar{background:var(--accent);border-bottom:var(--border);padding:12px 16px;display:flex;align-items:center;gap:8px;font-weight:800;letter-spacing:.08em;position:sticky;top:0;z-index:10}
@@ -1023,7 +1023,7 @@ function renderPlayCardHtml(pin, card, nonce) {
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700;800&display=swap" rel="stylesheet" />
   <style>
-    :root{--bg:#faf9f6;--panel:#fff;--ink:#0d0d0d;--muted:#6b6b6b;--brand:#ff4b4b;--accent:#ffe234;--green:#1db954;--border:3px solid #0d0d0d;--shadow-sm:3px 3px 0 #0d0d0d}
+    :root{--bg:#faf9f6;--panel:#fff;--ink:#0d0d0d;--muted:#6b6b6b;--brand:#ff4b4b;--accent:#ffe234;--live:#00c896;--border:3px solid #0d0d0d;--shadow-sm:3px 3px 0 #0d0d0d}
     *{box-sizing:border-box;margin:0;padding:0}
     body{font-family:"Space Grotesk",system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--ink);line-height:1.4}
     .appbar{background:var(--accent);border-bottom:var(--border);padding:12px 16px;display:flex;align-items:center;gap:8px;font-weight:800;letter-spacing:.08em;position:sticky;top:0;z-index:10}
@@ -1038,9 +1038,9 @@ function renderPlayCardHtml(pin, card, nonce) {
     .grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:18px 0}
     .cell{background:#fff;border:var(--border);box-shadow:var(--shadow-sm);padding:10px 6px;text-align:center;font-weight:700;cursor:pointer;user-select:none;transition:transform .08s,background .15s,box-shadow .08s}
     .cell:active{transform:translate(2px,2px);box-shadow:none}
-    .cell.marked{background:var(--ink);color:#fff}
+    .cell.marked{background:var(--accent);color:var(--ink)}
     .artist{font-size:11px;color:var(--muted);margin-bottom:2px}
-    .cell.marked .artist{color:#ffffffb3}
+    .cell.marked .artist{color:var(--ink)}
     .title{font-size:13px;line-height:1.15}
     .actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px}
     button{font-family:inherit;border:var(--border);box-shadow:var(--shadow-sm);padding:14px 12px;font-weight:700;font-size:14px;cursor:pointer;background:#fff;color:var(--ink);display:inline-flex;align-items:center;justify-content:center;gap:8px}

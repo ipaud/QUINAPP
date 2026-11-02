@@ -48,11 +48,20 @@ body {
 }
 .skip-link:focus { top: 8px; }
 
+/* Native controls follow the brand (no browser-blue, no system font). */
+button, input, select, textarea { font: inherit; }
+:root { accent-color: var(--ink); }
+
 /* Visible keyboard focus on all interactive elements */
 :focus-visible {
   outline: 3px solid var(--brand);
   outline-offset: 2px;
 }
+
+/* Red ring is 2.5:1 on yellow; ink on yellow surfaces. */
+.app-header :focus-visible,
+.wiz-result :focus-visible,
+.now-hero :focus-visible { outline-color: var(--ink); }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
@@ -140,7 +149,7 @@ body {
   border: 2px solid var(--ink);
 }
 
-.live-on  { background: var(--live-on); color: #fff; }
+.live-on  { background: var(--live-on); color: var(--ink); }
 .live-off { background: #fff; color: var(--muted); }
 
 .server-badge {
@@ -153,7 +162,7 @@ body {
 }
 
 .server-on { background: #fff; color: var(--ink); }
-.server-off { background: var(--brand); color: #fff; }
+.server-off { background: var(--brand); color: var(--ink); }
 
 /* ── Brand lockup (portada) · manual §02: símbol + descriptor + wordmark ── */
 .brand-lockup {
@@ -364,7 +373,7 @@ textarea {
 
 .divider {
   border: none;
-  border-top: 2px dashed #ccc;
+  border-top: 2px solid var(--ink);
   margin: 2px 0;
 }
 
@@ -397,7 +406,7 @@ textarea {
   box-shadow: var(--shadow-sm);
 }
 
-.btn-primary { background: #1db954; color: #fff; }
+.btn-primary { background: var(--brand); color: var(--ink); }
 .btn-accent  { background: var(--accent); color: var(--ink); }
 .btn-ghost   { background: var(--panel); color: var(--ink); }
 
@@ -417,11 +426,10 @@ textarea {
 }
 
 .now-label {
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  opacity: 0.6;
 }
 
 .now-artist {
@@ -434,7 +442,7 @@ textarea {
 .now-title {
   font-size: 14px;
   font-weight: 500;
-  color: var(--muted);
+  color: #4a4a4a; /* --muted fails on yellow (4.1:1); this is 6.8:1 */
 }
 
 .drawn-progress {
@@ -443,7 +451,8 @@ textarea {
   text-align: center;
   letter-spacing: 0.04em;
   padding: 8px;
-  border: 2px dashed #ccc;
+  border: 2px solid var(--ink);
+  background: var(--bg);
 }
 
 .spotify-player-wrap {
@@ -547,7 +556,8 @@ textarea {
 .queue-item {
   font-size: 13px;
   font-weight: 700;
-  border: 2px dashed #ccc;
+  border: 2px solid var(--ink);
+  background: var(--bg);
   padding: 6px 8px;
 }
 
@@ -753,7 +763,7 @@ body.event-mode #eventShortcuts kbd {
 .now-strip-icon   { font-size: 20px; flex-shrink: 0; }
 .now-strip-artist { font-weight: 800; font-size: 17px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .now-strip-sep    { color: var(--muted); flex-shrink: 0; }
-.now-strip-title  { font-size: 14px; color: var(--muted); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.now-strip-title  { font-size: 14px; color: #4a4a4a; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 .card-nav {
   display: flex;
@@ -844,7 +854,7 @@ body.event-mode #eventShortcuts kbd {
 
 .toast-info    { background: var(--panel); color: var(--ink); }
 .toast-success { background: var(--accent); color: var(--ink); }
-.toast-error   { background: var(--brand); color: #fff; }
+.toast-error   { background: var(--brand); color: var(--ink); }
 
 @keyframes toast-in {
   from { opacity: 0; transform: translateY(10px); }
@@ -859,7 +869,7 @@ body.event-mode #eventShortcuts kbd {
   .logo-text    { font-size: 17px; }
   .tab-btn      { padding: 6px 10px; font-size: 11px; }
 
-  .game-top     { flex-direction: column; }
+  .game-top     { flex-direction: column; flex-wrap: nowrap; }
   .card-nav     { justify-content: center; }
 
   .game-actions .btn { padding: 12px; font-size: 13px; }
@@ -925,7 +935,7 @@ body.advanced #wizard { display: none; }
 }
 .wiz-step-dot.active { color: var(--ink); }
 .wiz-step-dot.active span { background: var(--accent); }
-.wiz-step-dot.done span { background: var(--live-on); color: #fff; }
+.wiz-step-dot.done span { background: var(--live-on); color: var(--ink); }
 
 .wiz-panel {
   background: var(--panel);
@@ -948,9 +958,10 @@ body.advanced #wizard { display: none; }
   display: inline-block;
   align-self: flex-start;
 }
-.wiz-status.ok { background: var(--live-on); color: #fff; }
+.wiz-status.ok { background: var(--live-on); color: var(--ink); }
 
 .wiz-nav {
+  flex-wrap: wrap;
   display: flex;
   justify-content: space-between;
   gap: 10px;
@@ -962,7 +973,7 @@ body.advanced #wizard { display: none; }
 .wiz-adv[open] { display: flex; flex-direction: column; gap: 8px; }
 
 .wiz-count { font-weight: 800; color: var(--ink); }
-.wiz-count.bad { color: var(--brand); }
+.wiz-count.bad { color: var(--ink); font-weight: 800; text-decoration: underline 3px var(--brand); }
 
 .wiz-song-list {
   display: flex;
@@ -995,7 +1006,7 @@ body.advanced #wizard { display: none; }
   cursor: pointer;
   line-height: 1;
 }
-.wiz-song-row button:hover { background: var(--brand); color: #fff; }
+.wiz-song-row button:hover { background: var(--brand); color: var(--ink); }
 
 .wiz-result {
   border: var(--border);
@@ -1015,7 +1026,7 @@ body.advanced #wizard { display: none; }
 /* ── Botó Spotify ── */
 .btn-spotify {
   background: #1db954;
-  color: #fff;
+  color: var(--ink);
   border: var(--border);
   box-shadow: var(--shadow-sm);
   display: inline-flex;
@@ -1024,14 +1035,14 @@ body.advanced #wizard { display: none; }
   gap: 10px;
 }
 .btn-spotify:hover { background: #1ed760; filter: none; }
-.btn-spotify:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 #0d0d0d; }
+.btn-spotify:active { transform: translate(3px, 3px); box-shadow: none; }
 .btn-spotify .spotify-ico { flex-shrink: 0; }
 
 /* ── Wizard pas 5 (jugar) ── */
 .wiz-next-hero {
   border: var(--border);
   box-shadow: var(--shadow-sm);
-  background: #ff8a1f;
+  background: var(--panel);
   color: var(--ink);
   padding: 12px 16px;
   text-align: center;
@@ -1039,7 +1050,8 @@ body.advanced #wizard { display: none; }
   flex-direction: column;
   gap: 4px;
 }
-.wiz-next-hero .now-label { color: var(--ink); opacity: 0.55; }
+.wiz-next-hero .now-label { color: var(--ink); cursor: pointer; }
+.wiz-next-hero:not([open]) { padding-block: 8px; }
 .wiz-next-song {
   font-size: 18px;
   font-weight: 800;
@@ -1111,6 +1123,13 @@ body.advanced #wizard { display: none; }
 }
 
 @media (max-width: 480px) {
+  .btn { white-space: normal; }
+  .now-strip { padding: 12px; }
+  .nav-btn { padding: 10px 12px; }
+  .cell { padding: 8px 4px; overflow-wrap: anywhere; }
+  .card-meta { min-width: 0; white-space: normal; }
+  .spotify-controls { grid-template-columns: repeat(3, 1fr); }
+  .spotify-seek, .spotify-volume { grid-column: 1 / -1; }
   .btn-row { grid-template-columns: 1fr; }
   .tab-btn { padding: 6px 12px; font-size: 11px; }
   .mode-toggle { font-size: 10px; padding: 5px 8px; }

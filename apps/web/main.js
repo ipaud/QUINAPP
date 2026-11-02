@@ -286,7 +286,7 @@ function showQrModal(title, qrDataUrl, url) {
   }
 
   const copyBtn = document.createElement('button');
-  copyBtn.className = 'btn btn-primary';
+  copyBtn.className = 'btn btn-ghost';
   copyBtn.textContent = 'Copiar URL';
   copyBtn.addEventListener('click', () => {
     navigator.clipboard?.writeText(url);
@@ -969,7 +969,7 @@ function renderCard(card) {
   }
 
   const cols = state.session.cols;
-  els.grid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+  els.grid.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
   els.grid.innerHTML = '';
 
   card.songs.forEach((song, idx) => {

@@ -281,8 +281,10 @@
           <div id="eventBigCounter" class="event-big-counter">0 / —</div>
         </div>
 
+        <button id="drawNext" class="btn btn-primary full big-btn"><span data-icon="play"></span> Següent cançó</button>
+
         <div class="drawn-progress">
-          <span id="drawnCount">0</span> / <span id="totalSongs">—</span> cançons treballades
+          <span id="drawnCount">0</span> / <span id="totalSongs">—</span> cançons sonades
         </div>
 
         <div class="spotify-player-wrap">
@@ -333,7 +335,6 @@
           <div id="queueBlockedInfo" class="hint">Bloquejades: 0</div>
         </div>
 
-        <button id="drawNext" class="btn btn-primary full big-btn"><span data-icon="play"></span> Següent cançó</button>
         <div class="btn-row">
           <button id="exportLogJson" class="btn btn-ghost">Registre JSON</button>
           <button id="exportLogCsv" class="btn btn-ghost">Registre CSV</button>
@@ -423,7 +424,7 @@
         <div class="btn-row">
           <button id="refreshMobileInfo" class="btn btn-ghost">Actualitzar</button>
           <button id="shareMobileUrl" class="btn btn-accent">Compartir</button>
-          <button id="copyMobileUrl" class="btn btn-primary">Copiar URL</button>
+          <button id="copyMobileUrl" class="btn btn-ghost">Copiar URL</button>
         </div>
         <button id="testMobileConnection" class="btn btn-ghost full">Prova connexió</button>
         <p id="networkHint" class="hint">—</p>
