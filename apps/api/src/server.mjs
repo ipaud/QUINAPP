@@ -1041,7 +1041,8 @@ function renderValidateBatchHtml(nonce) {
 </html>`;
 }
 
-function renderPlayCardHtml(pin, card, nonce) {
+function renderPlayCardHtml(pin, card, nonce, cols = 5) {
+  const safeCols = Math.max(1, Math.min(8, Number(cols) || 5));
   return `<!doctype html>
 <html lang="ca">
 <head>
@@ -1066,8 +1067,8 @@ function renderPlayCardHtml(pin, card, nonce) {
     .now-playing{background:var(--accent);border:var(--border);box-shadow:var(--shadow-sm);padding:16px;margin:18px 0;text-align:center}
     .now-playing h2{font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;opacity:.6;margin-bottom:6px}
     .now-song{font-size:20px;font-weight:800;word-break:break-word}
-    .grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:18px 0}
-    .cell{background:#fff;border:var(--border);box-shadow:var(--shadow-sm);padding:10px 6px;text-align:center;font-weight:700;cursor:pointer;user-select:none;transition:transform .08s,background .15s,box-shadow .08s}
+    .grid{display:grid;grid-template-columns:repeat(${safeCols},minmax(0,1fr));gap:8px;margin:18px 0}
+    .cell{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;width:100%;min-width:0;overflow-wrap:anywhere;background:#fff;border:var(--border);box-shadow:var(--shadow-sm);padding:10px 6px;text-align:center;font-weight:700;cursor:pointer;user-select:none;transition:transform .08s,background .12s,box-shadow .08s}
     .cell:active{transform:translate(2px,2px);box-shadow:none}
     .cell.marked{background:var(--accent);color:var(--ink)}
     .artist{font-size:11px;color:var(--muted);margin-bottom:2px}
@@ -1094,7 +1095,7 @@ function renderPlayCardHtml(pin, card, nonce) {
 
     <div id="nowPlaying" class="now-playing">
       <h2>Sonant ara</h2>
-      <div id="nowSong" class="now-song">Esperant…</div>
+      <div id="nowSong" class="now-song" role="status" aria-live="polite">Esperant…</div>
     </div>
 
     <div id="grid" class="grid"></div>
@@ -1115,28 +1116,32 @@ function renderPlayCardHtml(pin, card, nonce) {
     let drawnSongs = [];
     let eventSource = null;
 
+    // Cells are built once and repainted in place, so keyboard focus survives
+    // every mark and every draw broadcast.
+    const cells = cardSongs.map((song, idx) => {
+      const cell = document.createElement('button');
+      cell.type = 'button';
+      cell.className = 'cell';
+      const artistEl = document.createElement('span');
+      artistEl.className = 'artist';
+      artistEl.textContent = song.artist;
+      const titleEl = document.createElement('span');
+      titleEl.className = 'title';
+      titleEl.textContent = song.title;
+      cell.append(artistEl, titleEl);
+      cell.addEventListener('click', () => toggleMark(idx));
+      document.getElementById('grid').appendChild(cell);
+      return cell;
+    });
+
     function renderGrid() {
-      const grid = document.getElementById('grid');
-      grid.innerHTML = '';
-      cardSongs.forEach((song, idx) => {
-        const cell = document.createElement('div');
-        cell.className = 'cell ' + (marked.has(idx) ? 'marked' : 'unmarked');
-        cell.setAttribute('role', 'button');
-        cell.setAttribute('tabindex', '0');
-        const artistEl = document.createElement('div');
-        artistEl.className = 'artist';
-        artistEl.textContent = song.artist;
-        const titleEl = document.createElement('div');
-        titleEl.className = 'title';
-        titleEl.textContent = song.title;
-        cell.append(artistEl, titleEl);
-        cell.addEventListener('click', () => toggleMark(idx));
-        cell.addEventListener('keydown', (e) => {
-          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleMark(idx); }
-        });
-        grid.appendChild(cell);
+      cells.forEach((cell, idx) => {
+        const on = marked.has(idx);
+        cell.classList.toggle('marked', on);
+        cell.setAttribute('aria-pressed', String(on));
       });
     }
+    renderGrid();
 
     function toggleMark(idx) {
       if (marked.has(idx)) {
@@ -1795,7 +1800,7 @@ const requestHandler = async (req, res) => {
       return;
     }
     const nonce = randomBytes(16).toString('base64');
-    sendHtml(res, renderPlayCardHtml(pin, card, nonce), nonce);
+    sendHtml(res, renderPlayCardHtml(pin, card, nonce, session.cols), nonce);
     return;
   }
 

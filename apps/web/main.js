@@ -238,16 +238,17 @@ function showToast(text, type = 'info') {
   setTimeout(() => t.remove(), TOAST_DURATION_MS[type] || TOAST_DURATION_MS.default);
 }
 
+// Native <dialog>: showModal() makes the page inert (focus stays inside) and
+// Escape closes it; focus goes back to whatever opened it.
 function showQrModal(title, qrDataUrl, url) {
-  const modal = document.createElement('div');
-  modal.className = 'modal-overlay';
-  modal.setAttribute('role', 'dialog');
-  modal.setAttribute('aria-modal', 'true');
-
-  const content = document.createElement('div');
-  content.className = 'modal-content';
+  const opener = document.activeElement;
+  const modal = document.createElement('dialog');
+  modal.className = 'modal-overlay modal-content';
+  const titleId = `qr-title-${Date.now()}`;
+  modal.setAttribute('aria-labelledby', titleId);
 
   const h3 = document.createElement('h3');
+  h3.id = titleId;
   h3.textContent = title;
 
   const img = document.createElement('img');
@@ -255,29 +256,22 @@ function showQrModal(title, qrDataUrl, url) {
   img.alt = `Codi QR: ${title}`;
   img.width = 240;
   img.height = 240;
-  img.style.maxWidth = '100%';
-  img.style.height = 'auto';
 
-  const urlText = document.createElement('p');
-  urlText.style.wordBreak = 'break-all';
-  urlText.style.fontSize = '12px';
-  urlText.style.color = '#666';
-  urlText.textContent = url;
+  // A link, not plain text: on a phone you can't scan your own screen.
+  const link = document.createElement('a');
+  link.className = 'modal-url';
+  link.href = url;
+  link.target = '_blank';
+  link.rel = 'noopener';
+  link.textContent = url;
 
   const actions = document.createElement('div');
-  actions.style.display = 'flex';
-  actions.style.gap = '8px';
-  actions.style.justifyContent = 'flex-end';
-
-  const close = () => {
-    modal.remove();
-    document.removeEventListener('keydown', onKey);
-  };
+  actions.className = 'modal-actions';
 
   const closeBtn = document.createElement('button');
   closeBtn.className = 'btn btn-ghost';
   closeBtn.textContent = 'Tancar';
-  closeBtn.addEventListener('click', close);
+  closeBtn.addEventListener('click', () => modal.close());
   actions.appendChild(closeBtn);
 
   if (navigator.share) {
@@ -290,25 +284,29 @@ function showQrModal(title, qrDataUrl, url) {
 
   const copyBtn = document.createElement('button');
   copyBtn.className = 'btn btn-ghost';
-  copyBtn.textContent = 'Copiar URL';
-  copyBtn.addEventListener('click', () => {
-    navigator.clipboard?.writeText(url);
-    copyBtn.textContent = 'Copiat!';
-    setTimeout(() => { copyBtn.textContent = 'Copiar URL'; }, 2000);
+  copyBtn.textContent = 'Copiar enllaç';
+  copyBtn.addEventListener('click', async () => {
+    // Clipboard API is missing on plain http (LAN); only claim success if it worked.
+    const copied = await navigator.clipboard?.writeText(url).then(() => true, () => false);
+    if (copied) {
+      copyBtn.textContent = 'Copiat!';
+      setTimeout(() => { copyBtn.textContent = 'Copiar enllaç'; }, 2000);
+    } else {
+      getSelection()?.selectAllChildren(link);
+      showToast('Enllaç seleccionat: copia’l manualment', 'info');
+    }
   });
   actions.appendChild(copyBtn);
 
-  content.append(h3, img, urlText, actions);
-  modal.appendChild(content);
+  modal.append(h3, img, link, actions);
   document.body.appendChild(modal);
-
-  function onKey(e) {
-    if (e.key === 'Escape') close();
-  }
-  document.addEventListener('keydown', onKey);
-  modal.addEventListener('click', (e) => {
-    if (e.target === modal) close();
+  modal.addEventListener('close', () => {
+    modal.remove();
+    if (opener instanceof HTMLElement && opener.isConnected) opener.focus();
   });
+  // Click on the backdrop (the dialog box itself, outside its content) closes it.
+  modal.addEventListener('click', (e) => { if (e.target === modal) modal.close(); });
+  modal.showModal();
   closeBtn.focus();
 }
 
@@ -982,6 +980,7 @@ function renderCard(card) {
     const cell = document.createElement('button');
     cell.type = 'button';
     cell.className = `cell${state.marked.has(idx) ? ' marked' : ''}`;
+    cell.setAttribute('aria-pressed', String(state.marked.has(idx)));
     const artist = document.createElement('div');
     artist.className = 'artist';
     artist.textContent = song.artist;
@@ -990,13 +989,21 @@ function renderCard(card) {
     title.textContent = song.title;
     cell.append(artist, title);
     cell.addEventListener('click', () => {
+      // Repaint in place: rebuilding the grid would drop keyboard focus.
       if (state.marked.has(idx)) state.marked.delete(idx);
       else state.marked.add(idx);
-      renderCard(card);
+      const on = state.marked.has(idx);
+      cell.classList.toggle('marked', on);
+      cell.setAttribute('aria-pressed', String(on));
+      renderCardMeta(card);
     });
     els.grid.appendChild(cell);
   });
 
+  renderCardMeta(card);
+}
+
+function renderCardMeta(card) {
   els.cardMeta.textContent = `#${card.number}  ·  ${state.activeCardIndex + 1}/${state.cards.length}  ·  ${state.marked.size}/${card.songs.length} marcades`;
 }
 
@@ -1326,7 +1333,9 @@ function connectLiveSSE(pin) {
   es.addEventListener('claim.checked', (evt) => {
     const data = JSON.parse(evt.data);
     const card = state.cards.find((c) => c.id === data.cardId);
-    showToast(claimMessage(data.result?.type, Boolean(data.result?.valid), card?.number), data.result?.valid ? 'success' : 'error');
+    const message = claimMessage(data.result?.type, Boolean(data.result?.valid), card?.number);
+    showToast(message, data.result?.valid ? 'success' : 'error');
+    logClaim(message, Boolean(data.result?.valid));
   });
 
   es.addEventListener('ping', () => {
@@ -1871,6 +1880,17 @@ els.exportLogCsv?.addEventListener('click', () => {
 
 const CLAIM_LABELS = { linea: 'Línia', bingo: 'Quina' };
 
+// Claims arrive while the host may be looking away: keep them in a list too.
+function logClaim(message, valid) {
+  const list = document.getElementById('wizClaims');
+  if (!list) return;
+  list.querySelector('.drawn-empty')?.remove();
+  const li = document.createElement('li');
+  li.className = `claim-item ${valid ? 'claim-ok' : 'claim-bad'}`;
+  li.textContent = `${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · ${message}`;
+  list.prepend(li);
+}
+
 function claimMessage(type, valid, cardNumber) {
   const label = CLAIM_LABELS[type] || 'Reclamació';
   const card = cardNumber ? ` · Cartó #${cardNumber}` : '';
@@ -2148,6 +2168,7 @@ document.addEventListener('keydown', (event) => {
     togglePlay: document.getElementById('wizTogglePlay'),
     snippet: document.getElementById('wizSnippet'),
     check: document.getElementById('wizCheck'),
+    project: document.getElementById('wizProject'),
     history: document.getElementById('wizHistory'),
     spotifyHint: document.getElementById('wizSpotifyHint'),
     openConsole: document.getElementById('wizOpenConsole'),
@@ -2355,6 +2376,11 @@ document.addEventListener('keydown', (event) => {
     });
   }
   W.openConsole?.addEventListener('click', () => { setMode(true); switchTab('locutor'); });
+  // Second window for the projector: current song + counter only, never the next one.
+  W.project?.addEventListener('click', () => {
+    if (!wstate.pin) { showToast('Primer genera els cartons', 'error'); return; }
+    window.open(`/projector.html?pin=${encodeURIComponent(wstate.pin)}`, 'quinapp-projector');
+  });
   W.check?.addEventListener('click', async () => {
     try {
       // QR generat al servidor (no depèn de cap CDN, immune a adblockers).

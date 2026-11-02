@@ -624,29 +624,20 @@ body.event-mode #eventShortcuts kbd {
   box-shadow: 3px 3px 0 #000;
 }
 
-/* ── Modal ── */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
+/* ── Modal (native <dialog>) ── */
 .modal-content {
+  margin: auto; /* the global reset removes the native <dialog> centering */
   background: var(--panel);
+  color: var(--ink);
   border: var(--border);
   box-shadow: var(--shadow);
   padding: 20px;
-  max-width: 400px;
-  width: 90%;
+  max-width: min(400px, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px);
+  overflow: auto;
   text-align: center;
 }
+.modal-content::backdrop { background: rgba(13, 13, 13, 0.6); }
 
 .modal-content h3 {
   margin-bottom: 16px;
@@ -654,7 +645,25 @@ body.event-mode #eventShortcuts kbd {
 }
 
 .modal-content img {
-  margin: 16px 0;
+  margin: 16px auto;
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+.modal-url {
+  display: block;
+  word-break: break-all;
+  font-size: 13px;
+  color: var(--ink);
+  margin-bottom: 16px;
+}
+
+.modal-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
 }
 
 /* ── Cards list ── */
@@ -1140,3 +1149,8 @@ body.advanced #wizard { display: none; }
   .wiz-song-row { grid-template-columns: 1fr 1fr auto; gap: 4px; }
   .wiz-song-row input { font-size: 13px; padding: 7px 8px; }
 }
+
+/* ── Reclamacions (pas 5) ── */
+.claim-item { padding: 8px 10px; border: 2px solid var(--ink); font-weight: 700; font-size: 14px; }
+.claim-ok  { background: var(--live-on); color: var(--ink); }
+.claim-bad { background: var(--panel); color: var(--ink); border-left: 8px solid var(--brand); }

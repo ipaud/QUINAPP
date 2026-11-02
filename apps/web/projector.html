@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="ca">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Pantalla · QUINAPP</title>
+  <link rel="icon" href="./brand/quinapp-symbol.svg" type="image/svg+xml" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./projector.css" />
+</head>
+<body>
+  <!-- Audience screen: only what has already sounded. Never the next song. -->
+  <header class="proj-top">
+    <img src="./brand/quinapp-symbol-negatiu.svg" width="56" height="56" alt="" />
+    <span class="proj-wordmark">QUINAPP</span>
+    <span id="projCounter" class="proj-counter">0 / —</span>
+  </header>
+  <main class="proj-main" role="status" aria-live="polite">
+    <p class="proj-label">Sonant ara</p>
+    <p id="projArtist" class="proj-artist">Esperant la primera cançó</p>
+    <p id="projTitle" class="proj-title"></p>
+  </main>
+  <p id="projHint" class="proj-hint">Fes clic per posar-la a pantalla completa</p>
+  <script type="module" src="./projector.js"></script>
+</body>
+</html>
