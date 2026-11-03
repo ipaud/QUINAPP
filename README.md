@@ -42,9 +42,9 @@ Instal·ladors a la **[darrera Release](https://github.com/ipaud/QUINAPP/release
 
 | Sistema | Descàrrega |
 |---|---|
-| <img src="docs/readme-icons/laptop.svg" width="16" alt=""> **macOS** (Apple Silicon) | [QUINAPP-0.1.0-arm64.dmg](https://github.com/ipaud/QUINAPP/releases/latest/download/QUINAPP-0.1.0-arm64.dmg) |
-| <img src="docs/readme-icons/monitor.svg" width="16" alt=""> **Windows** (64-bit) | [QUINAPP-0.1.0-setup.exe](https://github.com/ipaud/QUINAPP/releases/latest/download/QUINAPP-0.1.0-setup.exe) |
-| <img src="docs/readme-icons/smartphone.svg" width="16" alt=""> **Android** (client WebView) | [QUINAPP-0.1.0.apk](https://github.com/ipaud/QUINAPP/releases/latest/download/QUINAPP-0.1.0.apk) |
+| <img src="docs/readme-icons/laptop.svg" width="16" alt=""> **macOS** (Apple Silicon) | [QUINAPP-0.2.0-arm64.dmg](https://github.com/ipaud/QUINAPP/releases/latest/download/QUINAPP-0.2.0-arm64.dmg) |
+| <img src="docs/readme-icons/monitor.svg" width="16" alt=""> **Windows** (64-bit) | [QUINAPP-0.2.0-setup.exe](https://github.com/ipaud/QUINAPP/releases/latest/download/QUINAPP-0.2.0-setup.exe) |
+| <img src="docs/readme-icons/smartphone.svg" width="16" alt=""> **Android** (client WebView) | [QUINAPP-0.2.0.apk](https://github.com/ipaud/QUINAPP/releases/latest/download/QUINAPP-0.2.0.apk) |
 
 > Builds **sense signar**: macOS → clic dret ▸ Obrir; Windows → «Més informació» ▸ «Executa igualment»; Android → activa «instal·lar d'orígens desconeguts».
 
@@ -169,7 +169,7 @@ npm run electron:pack:win      # dist/QUINAPP-<versió>-setup.exe   (cal Windows
 > adjunta a una **GitHub Release**:
 >
 > ```bash
-> git tag v0.1.0 && git push origin v0.1.0
+> git tag v0.2.0 && git push origin v0.2.0
 > ```
 >
 > Són builds **sense signar**: a macOS, clic dret → Obrir (Gatekeeper); a Windows,
